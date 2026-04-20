@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Course, Question, Summary, MockExam, Purchase
+from .models import Course, Question, Summary, MockExam, Purchase, PopQuestion, FillInTheGap
 
 # 1. Course Admin
 class CourseAdmin(admin.ModelAdmin):
@@ -30,3 +30,5 @@ admin.site.register(Question, QuestionAdmin)
 admin.site.register(Summary, SummaryAdmin)
 admin.site.register(MockExam, MockExamAdmin)
 admin.site.register(Purchase, PurchaseAdmin)
+admin.site.register(FillInTheGap)
+admin.site.register(PopQuestion)

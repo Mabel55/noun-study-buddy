@@ -47,9 +47,11 @@ INSTALLED_APPS = [
     'allauth.account',           
     'allauth.socialaccount',     
     'dj_rest_auth.registration',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -58,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
+    
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -148,3 +151,5 @@ ACCOUNT_EMAIL_VERIFICATION = 'none'
 # PAYSTACK SETTINGS (PLACEHOLDERS)
 PAYSTACK_PUBLIC_KEY = 'pk_test_a64b83152afb7c3802b47beeac0544bfd7635861'
 PAYSTACK_SECRET_KEY = 'sk_test_514de6ae0cc2beea5e86b39402b9249ae821ab64'
+
+CORS_ALLOW_ALL_ORIGINS = True

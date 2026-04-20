@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 class Course(models.Model):
     title = models.CharField(max_length=200)
     code = models.CharField(max_length=20)  # e.g., MTH101
-    description = models.TextField()
+    description = models.TextField(null=True, blank=True)
     # The textbook file (PDF)
     textbook = models.FileField(upload_to='textbooks/', blank=True, null=True)
     # The price in Naira (0 = Free)
@@ -33,12 +33,31 @@ class Question(models.Model):
 
     def __str__(self):
         return f"{self.course.code}: {self.text[:50]}..."
+    
+# The Q&A Table (For POP / Short Answer Practice)
+class PopQuestion(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    question_text = models.TextField()
+    answer_text = models.TextField() # Holds the detailed explanation/steps
+
+    def __str__(self):
+        return f"{self.course.code} - POP Q&A"
+    
+# The Fill-in-the-Gap Table (For NOUN CBT Standard)
+class FillInTheGap(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    question_text = models.TextField() # e.g., "The capital of Nigeria is ______."
+    correct_answer = models.CharField(max_length=255) 
+
+    def __str__(self):
+        return f"{self.course.code} - Fill in the Gap"
 
 # 3. The Summary Table (For PDF Lecture Notes/Summaries)
 class Summary(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
-    file = models.FileField(upload_to='summaries/')
+    content = models.TextField(blank=True, null=True)
+    file = models.FileField(upload_to='summaries/', blank=True, null=True)
     is_premium = models.BooleanField(default=False)
 
     def __str__(self):

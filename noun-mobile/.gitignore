@@ -1,0 +1,70 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+app-example
+
+# generated native folders
+/ios
+/android
+
+# =========================================
+# 🚀 NOUN STUDY BUDDY CUSTOM IGNORES
+# =========================================
+
+# 1. Textbooks, Summaries & Documents (No large binary files)
+summaries/
+textbooks/
+*.pdf
+*.doc
+*.docx
+
+# 2. Python & Django Backend (Keeps the repo clean)
+venv/
+env/
+__pycache__/
+*.pyc
+db.sqlite3 
+
+# 3. Environment Variables & Secrets (CRITICAL SECURITY)
+.env
+.env.*
+*.pem
+
+# 4. OS Junk Files
+.DS_Store
+Thumbs.db
