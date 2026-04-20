@@ -35,3 +35,6 @@ Thumbs.db
 *.png
 *.jpg
 *.jpeg
+# NOUN Summaries
+summaries/*.pdf
+summaries/*.docx
