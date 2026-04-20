@@ -1,58 +1,84 @@
-# NOUN Study Buddy
+# 🎓 NOUN Study Buddy
 
-## 📌 Overview
-NOUN Study Buddy is a **Django-based backend web application** designed to help students of the National Open University of Nigeria (NOUN) organize their studies efficiently.  
+> An intelligent, AI-driven learning companion designed exclusively for students at the National Open University of Nigeria (NOUN). 
 
-It demonstrates **real-world backend skills** including database management, RESTful API endpoints, and user authentication.
-
----
-
-## 🚀 Features
-- Student registration and login system
-- Course and study material management
-- Study reminders and planning
-- CRUD operations with PostgreSQL/SQLite
-- Admin dashboard for managing students and content
-- Designed for backend scalability and integration
+**NOUN Study Buddy** bridges the gap between massive course materials and effective exam preparation. By combining advanced AI-generated course summaries with an interactive mock exam engine, it provides students with a targeted, stress-free way to study for both CBT (Computer-Based Testing) and POP (Pen-On-Paper) examinations.
 
 ---
 
-## 🛠 Tech Stack
-- **Python**
-- **Django** (Backend framework)
-- **SQLite / PostgreSQL** (Database)
-- **HTML/CSS** (Frontend templates)
-- **Bootstrap** (Optional UI styling)
-- **Git & GitHub** (Version control)
+## ✨ Key Features
+
+### 🤖 AI-Powered Content & Summaries
+* Distills dense university study materials into highly readable chapter summaries.
+* Powered by **Retrieval-Augmented Generation (RAG)** to ensure the AI strictly references official NOUN textbooks and course materials without hallucinating.
+* Utilizes **LangChain** and **Advanced Prompt Engineering** to orchestrate complex LLM workflows, generating highly accurate model answers for essay questions.
+* Built with principles of **RLHF (Reinforcement Learning from Human Feedback)** to ensure the grading logic and generated content continuously align with academic standards.
+
+### 🧠 The Practice Center
+* A self-paced study environment tailored for deep learning and memorization.
+* **POP Essay Mode:** Displays essay questions and allows students to reveal the AI-generated model answers at their own pace.
+* **CBT & Fill-in-the-gap:** Practice multiple-choice questions with instant correct/incorrect feedback.
+
+### ⏱️ Timed Mock Exam Simulator
+* A strict, timed simulation mirroring the actual NOUN CBT exam hall experience.
+* Features a ticking countdown timer (standardized to 45 minutes).
+* Auto-grades CBT and Fill-in-the-gap questions upon submission or when the timer reaches zero.
+* Provides a final percentage score and locks answers to maintain exam integrity.
 
 ---
 
-## 🧠 What This Project Demonstrates
-- Backend web development with Django
-- User authentication and authorization
-- Database design and management
-- API and CRUD endpoint creation
-- Problem-solving for academic tools
+## 🛠️ Technology Stack
+
+This project is built using a modern decoupled architecture, separating the mobile frontend from the AI-powered backend API.
+
+**Artificial Intelligence & Data Processing**
+* **Orchestration:** LangChain
+* **Architecture:** Retrieval-Augmented Generation (RAG)
+* **Optimization:** Prompt Engineering & RLHF principles
+
+**Frontend (Mobile App)**
+* **Framework:** React Native / Expo
+* **Language:** TypeScript
+* **Routing:** Expo Router (File-based navigation)
+* **UI/UX:** Custom React Native StyleSheet with SafeAreaView optimization
+
+**Backend (API)**
+* **Framework:** Django & Django REST Framework (DRF)
+* **Language:** Python
+* **Database:** SQLite (Development) / PostgreSQL (Production ready)
 
 ---
 
-## 📂 Project Structure
----
+## 🚀 Getting Started
 
-## ▶️ How to Run
-1. Clone the repo:
+Follow these instructions to get a copy of the project up and running on your local machine for development and testing.
+
+### Prerequisites
+* **Node.js** (v18 or higher)
+* **Python** (3.10 or higher)
+* **Expo CLI** (`npm install -g expo-cli`)
+
+### 1. Backend Setup (Django)
+Navigate to the backend directory and start the server:
+
 ```bash
-git clone https://github.com/Mabel55/noun-study-buddy.git
-cd noun-study-buddy
+# Install required Python packages
 pip install -r requirements.txt
+
+# Run database migrations
 python manage.py migrate
+
+# Start the Django server
 python manage.py runserver
 
-Target Users
-NOUN students
-Distance learners
-Students needing study organization tools
+# Install dependencies
+npm install
 
-👩‍💻 Author
-Mabel Chinasa
-Python Backend Developer | Django & AI Enthusiast
+# Start the Expo development server
+npx expo start -c
+
+🏗️ Project Architecture Note
+To ensure seamless communication between the React Native frontend and the Django backend during local web testing, API fetch requests are currently routed through http://localhost:8000
+
+👨‍💻 Author
+Arua Mabel Chinasa Computer Science, National Open University of Nigeria (NOUN)
