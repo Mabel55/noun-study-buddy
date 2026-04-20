@@ -1,1 +1,1 @@
-web: gunicorn config.wsgi --timeout 600
+web: python manage.py migrate --noinput && gunicorn config.wsgi --timeout 600
