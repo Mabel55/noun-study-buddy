@@ -60,7 +60,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
-    
+    'whitenoise.middleware.WhiteNoiseMiddleware'
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -153,3 +153,6 @@ PAYSTACK_PUBLIC_KEY = 'pk_test_a64b83152afb7c3802b47beeac0544bfd7635861'
 PAYSTACK_SECRET_KEY = 'sk_test_514de6ae0cc2beea5e86b39402b9249ae821ab64'
 
 CORS_ALLOW_ALL_ORIGINS = True
+# Static files configuration
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
