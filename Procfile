@@ -1,1 +1,1 @@
-web: python manage.py migrate --noinput && python manage.py createsuperuser --noinput || true && gunicorn config.wsgi --timeout 600
+web: python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py createsuperuser --noinput || true && gunicorn config.wsgi --timeout 600
