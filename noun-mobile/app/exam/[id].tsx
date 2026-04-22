@@ -22,7 +22,7 @@ export default function TimedExamPage() {
   useEffect(() => {
     if (!cleanId) return;
 
-    fetch(`http://localhost:8000/api/courses/${cleanId}/`)
+    fetch(`https://noun-study-buddy.onrender.com/api/courses/${cleanId}/`)
       .then(res => res.json())
       .then(data => {
         setCourseData(data);

@@ -10,7 +10,7 @@ export default function SummaryPage() {
 
   useEffect(() => {
     // Fetch the course data from Django
-    fetch(`http://localhost:8000/api/summaries/${id}/`)
+    fetch(`https://noun-study-buddy.onrender.com/api/summaries/${id}/`)
       .then(res => res.json())
       .then(data => {
         setCourseData(data);

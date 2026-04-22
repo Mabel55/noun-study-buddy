@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, SafeAreaView } from 'react-native';
 
 // UPDATE THIS URL based on your testing environment (Emulator vs Physical Phone)
-const API_URL = 'http://localhost:8000/api/courses/'; 
+const API_URL = 'http://noun-study-buddy.onrender.com/api/courses/'; 
 
 export default function CourseDashboard() {
   const [courses, setCourses] = useState([]);
