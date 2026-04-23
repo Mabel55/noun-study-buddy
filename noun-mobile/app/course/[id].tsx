@@ -8,7 +8,7 @@ export default function CourseDetails() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`http://noun-study-buddy.onrender.com/api/courses/${id}/`)
+    fetch(`https://noun-study-buddy.onrender.com/api/courses/${id}/`)
       .then(res => res.json())
       .then(data => {
         setCourseData(data);

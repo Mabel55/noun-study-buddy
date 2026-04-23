@@ -8,7 +8,9 @@ from .views import (
     SummaryViewSet, 
     MockExamViewSet, 
     VerifyPaymentView, 
-    my_purchased_courses  # <--- Make sure this is here!
+    my_purchased_courses,
+    get_summary_by_course
+          # <--- Make sure this is here!
 )
 
 router = DefaultRouter()
@@ -26,5 +28,7 @@ urlpatterns = [
     
     # This is the door for the APP to check "What courses do I own?"
     path('my-courses/', my_purchased_courses, name='my_purchased_courses'),
+    # This is the door for the APP to check "What summaries do I have for this course?"
+    path('summaries/course/<int:course_id>/', views.get_summary_by_course, name='get_summary_by_course'),
     # This lets Django serve PDF/Media files while we are in development mode!
 ]

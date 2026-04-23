@@ -82,3 +82,14 @@ def my_purchased_courses(request):
     
     # 3. Send it to the app
     return Response({'purchased_course_ids': purchased_ids})
+
+    @api_view(['GET'])
+@permission_classes([AllowAny])
+def get_summary_by_course(request, course_id):
+    try:
+        # This finds the summary linked to the specific course_id
+        summary = Summary.objects.get(course_id=course_id)
+        serializer = SummarySerializer(summary)
+        return Response(serializer.data)
+    except Summary.DoesNotExist:
+        return Response({"detail": "No summary available for this course."}, status=404)
