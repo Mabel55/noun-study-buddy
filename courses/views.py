@@ -83,7 +83,7 @@ def my_purchased_courses(request):
     # 3. Send it to the app
     return Response({'purchased_course_ids': purchased_ids})
 
-    @api_view(['GET'])
+@api_view(['GET'])
 @permission_classes([AllowAny])
 def get_summary_by_course(request, course_id):
     try:
