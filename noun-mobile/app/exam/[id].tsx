@@ -11,23 +11,10 @@ import {
   SafeAreaView,
   StatusBar,
   TextInput,
+  Platform
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
-// ─── TYPES ──────────────────────────────────────────────────────────────────
-interface Question {
-  id: number;
-  text?: string;
-  question_text?: string;
-  option_a?: string;
-  option_b?: string;
-  option_c?: string;
-  option_d?: string;
-  correct_answer: string;
-  qType: 'CBT' | 'FILL';
-}
-
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
 const BASE_URL = 'https://noun-study-buddy-1.onrender.com';
 const EXAM_DURATION_MINUTES = 45;
 
@@ -35,37 +22,39 @@ export default function ExamScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
 
-  // ─── State ──────────────────────────────────────────────────────────────
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0); 
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({}); 
+  const [selectedAnswers, setSelectedAnswers] = useState({}); 
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(EXAM_DURATION_MINUTES * 60);
   const [examStarted, setExamStarted] = useState(false);
 
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // ─── Fetch Questions ─────────────────────────────────────────────────────
+  // ─── Fetch Questions using the correct endpoint ─────────────────────────
   useEffect(() => {
     if (id) fetchQuestions();
   }, [id]);
 
   const fetchQuestions = async () => {
     try {
-      // 1. Clean the ID to ensure the fetch works perfectly
       const cleanId = String(id).split('?')[0]; 
-      const response = await fetch(`${BASE_URL}/api/courses/${cleanId}/`);
+      // Using your flat questions array endpoint
+      const response = await fetch(`${BASE_URL}/api/questions/?course_id=${cleanId}`);
       const data = await response.json();
       
-      // 2. Extract CBT and Fill-in-the-gap arrays safely
-      const cbt = (data.cbt_questions || []).map((q: any) => ({ ...q, qType: 'CBT' as const }));
-      const fill = (data.fill_questions || []).map((q: any) => ({ ...q, qType: 'FILL' as const }));
+      // Ensure data is an array (in case the API returns an object with a 'results' key)
+      const questionArray = Array.isArray(data) ? data : (data.results || []);
+
+      const formattedData = questionArray.map((q) => ({
+        ...q,
+        qType: q.option_a ? 'CBT' : 'FILL'
+      }));
       
-      // 3. Combine them into one list
-      setQuestions([...cbt, ...fill]);
+      setQuestions(formattedData);
       setLoading(false);
       Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
     } catch (error) {
@@ -91,7 +80,7 @@ export default function ExamScreen() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [examStarted, submitted]);
 
-  const formatTime = (seconds: number) => {
+  const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
     const secs = (seconds % 60).toString().padStart(2, '0');
     return `${mins}:${secs}`;
@@ -102,14 +91,20 @@ export default function ExamScreen() {
     if (!autoSubmit) {
       const unanswered = questions.length - Object.keys(selectedAnswers).length;
       if (unanswered > 0) {
-        Alert.alert(
-          'Incomplete Exam',
-          `You have ${unanswered} unanswered question(s). Submit now?`,
-          [
-            { text: 'Continue Exam', style: 'cancel' },
-            { text: 'Submit', style: 'destructive', onPress: () => calculateScore() },
-          ]
-        );
+        if (Platform.OS === 'web') {
+           if (window.confirm(`You have ${unanswered} unanswered question(s). Submit now?`)) {
+             calculateScore();
+           }
+        } else {
+          Alert.alert(
+            'Incomplete Exam',
+            `You have ${unanswered} unanswered question(s). Submit now?`,
+            [
+              { text: 'Continue', style: 'cancel' },
+              { text: 'Submit', style: 'destructive', onPress: () => calculateScore() },
+            ]
+          );
+        }
         return;
       }
     }
@@ -121,7 +116,7 @@ export default function ExamScreen() {
     let correctCount = 0;
     questions.forEach((q) => {
       const userAnswer = (selectedAnswers[q.id] || "").trim().toLowerCase();
-      const correctAnswer = q.correct_answer.trim().toLowerCase();
+      const correctAnswer = (q.correct_answer || "").trim().toLowerCase();
       if (userAnswer === correctAnswer) {
         correctCount++;
       }
@@ -130,14 +125,15 @@ export default function ExamScreen() {
     setSubmitted(true);
   };
 
-  // ─── Render Logic ──────────────────────────────────────────────────────
+  // ─── Render 1: Loading ───────────────────────────────────────────────────
   if (loading) return (
     <SafeAreaView style={styles.centerContainer}>
       <ActivityIndicator size="large" color="#1a4d3a" />
+      <Text style={{marginTop: 10}}>Loading Exam...</Text>
     </SafeAreaView>
   );
 
-  // The Blank Screen Fix: If data comes back empty, tell the user instead of crashing!
+  // ─── Render 2: Empty State ───────────────────────────────────────────────
   if (questions.length === 0) {
     return (
       <SafeAreaView style={styles.centerContainer}>
@@ -151,10 +147,24 @@ export default function ExamScreen() {
     );
   }
 
+  // ─── Render 3: Start Screen ──────────────────────────────────────────────
+  if (!examStarted) {
+    return (
+      <SafeAreaView style={styles.centerContainer}>
+        <Text style={styles.startTitle}>Ready to begin?</Text>
+        <Text style={{fontSize: 16, marginBottom: 30}}>You have {questions.length} questions to answer in {EXAM_DURATION_MINUTES} minutes.</Text>
+        <TouchableOpacity style={styles.startButton} onPress={() => setExamStarted(true)}>
+          <Text style={styles.startButtonText}>Begin Exam 🚀</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  // ─── Render 4: Results ───────────────────────────────────────────────────
   if (submitted) {
     const percent = Math.round((score / questions.length) * 100);
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.centerContainer}>
         <View style={styles.resultsContainer}>
           <Text style={styles.gradeText}>{percent}%</Text>
           <Text style={styles.scoreText}>You scored {score} out of {questions.length}</Text>
@@ -166,13 +176,13 @@ export default function ExamScreen() {
     );
   }
 
+  // ─── Render 5: The Exam ──────────────────────────────────────────────────
   const currentQ = questions[currentIndex];
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a4d3a" />
 
-      {/* Header */}
       <View style={styles.examHeader}>
         <View style={styles.timerContainer}>
           <Text style={styles.timerText}>⏱️ {formatTime(timeLeft)}</Text>
@@ -180,14 +190,12 @@ export default function ExamScreen() {
         <Text style={styles.progressText}>Question {currentIndex + 1} of {questions.length}</Text>
       </View>
 
-      {/* Scrollable Question Area */}
       <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
         <Animated.View style={[styles.questionCard, { opacity: fadeAnim }]}>
           <Text style={styles.questionText}>{currentQ?.question_text || currentQ?.text}</Text>
 
-          {/* Render Multiple Choice (CBT) */}
           {currentQ?.qType === 'CBT' && ['A', 'B', 'C', 'D'].map((letter) => {
-            const optionKey = `option_${letter.toLowerCase()}` as keyof Question;
+            const optionKey = `option_${letter.toLowerCase()}`;
             const isSelected = selectedAnswers[currentQ?.id] === letter;
             return (
               <TouchableOpacity
@@ -197,13 +205,12 @@ export default function ExamScreen() {
               >
                 <View style={[styles.radio, isSelected && styles.radioActive]} />
                 <Text style={[styles.optionText, isSelected && styles.optionTextActive]}>
-                  {letter}. {currentQ[optionKey] as string}
+                  {letter}. {currentQ[optionKey]}
                 </Text>
               </TouchableOpacity>
             );
           })}
 
-          {/* Render Fill-in-the-Gap (FILL) */}
           {currentQ?.qType === 'FILL' && (
             <TextInput
               style={styles.textInput}
@@ -216,7 +223,6 @@ export default function ExamScreen() {
         </Animated.View>
       </ScrollView>
 
-      {/* Navigation Footer */}
       <View style={styles.footer}>
         <TouchableOpacity 
           style={[styles.navButton, currentIndex === 0 && styles.navDisabled]} 
@@ -239,21 +245,13 @@ export default function ExamScreen() {
           </TouchableOpacity>
         )}
       </View>
-
-      {!examStarted && (
-        <View style={styles.startOverlay}>
-           <TouchableOpacity style={styles.startButton} onPress={() => setExamStarted(true)}>
-             <Text style={styles.startButtonText}>Begin Exam 🚀</Text>
-           </TouchableOpacity>
-        </View>
-      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f7f5' },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f7f5' },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f7f5', padding: 20 },
   examHeader: { 
     backgroundColor: '#1a4d3a', 
     padding: 16, 
@@ -316,13 +314,7 @@ const styles = StyleSheet.create({
   scoreText: { fontSize: 18, color: '#666', marginVertical: 20 },
   homeButton: { backgroundColor: '#1a4d3a', padding: 16, borderRadius: 8, marginTop: 10 },
   homeButtonText: { color: '#fff', fontWeight: 'bold' },
-  startOverlay: { 
-    ...StyleSheet.absoluteFillObject, 
-    backgroundColor: 'rgba(245,247,245,0.95)', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    padding: 30 
-  },
+  startTitle: { fontSize: 28, fontWeight: 'bold', color: '#1a4d3a', marginBottom: 8 },
   startButton: { backgroundColor: '#1a4d3a', width: '100%', padding: 18, borderRadius: 12, alignItems: 'center' },
   startButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });
