@@ -61,39 +61,38 @@ export default function ExamScreen() {
     try {
       const cleanId = String(id).split('?')[0]; 
       
-      // We hit the COURSE endpoint because your serializer puts the questions there!
+      // 1. Fetch the master course data
       const response = await fetch(`https://noun-study-buddy-1.onrender.com/api/courses/${cleanId}/`);
-      const data = await response.json();
       
-      console.log("Master Data Received:", data);
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
 
-      // ─── THE FIX: Grabbing data from your specific Serializer names ───
-      // We combine CBT and FILL questions into one list for the exam
-      const allQuestions = [
-        ...(data.cbt_questions || []),
-        ...(data.fill_questions || []),
-        ...(data.pop_questions || [])
-      ];
+      const data = await response.json();
+      console.log("Master Data:", data);
 
-      if (allQuestions.length === 0) {
-        console.warn("No questions found in cbt_questions or fill_questions");
-        setQuestions([]); // This triggers the empty state
+      // 2. Extract questions using the EXACT names from your Serializer
+      // We look for 'cbt_questions' which you showed in your earlier screenshot
+      const rawQuestions = data.cbt_questions || [];
+
+      if (rawQuestions.length === 0) {
+        setQuestions([]); // Shows the "No questions available" screen
       } else {
-        // Format them so the app knows how to render each one
-        const formattedData = allQuestions.map((q: any) => ({
+        // 3. Format the questions for the exam engine
+        const formatted = rawQuestions.map((q: any) => ({
           ...q,
-          // If it has option_a, it's a Multiple Choice (CBT), otherwise it's FILL
-          qType: q.option_a ? 'CBT' : 'FILL'
+          text: q.text || q.question_text, // Handles both naming styles
+          qType: 'CBT' 
         }));
         
-        setQuestions(formattedData);
-        // If you are in mock/[id].tsx, you might use setCourseData(formattedData) instead
+        setQuestions(formatted);
       }
       
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching questions:', error);
+      console.error('Final Fetch Error:', error);
       setLoading(false);
+      Alert.alert("Error", "Could not connect to the exam server. Please check your internet.");
     }
   };
   // ─── Timer Logic ─────────────────────────────────────────────────────────
