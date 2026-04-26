@@ -48,7 +48,7 @@ export default function ExamScreen() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // ─── Fetch Questions ─────────────────────────────────────────────────────
+  // ─── Fetch Questions (Using YOUR working URL!) ───────────────────────────
   useEffect(() => {
     if (id) fetchQuestions();
   }, [id]);
@@ -57,27 +57,10 @@ export default function ExamScreen() {
     try {
       const cleanId = String(id).split('?')[0]; 
       
-      // Try fetching the mock exams filtered by course_id
-      const response = await fetch(`${BASE_URL}/api/mock-exams/?course_id=${cleanId}`);
-      
-      if (!response.ok) {
-         // Fallback just in case your Django model uses 'course' exactly instead of 'course_id'
-         const fallbackResponse = await fetch(`${BASE_URL}/api/mock-exams/?course=${cleanId}`);
-         const fallbackData = await fallbackResponse.json();
-         processExamData(fallbackData);
-         return;
-      }
-
+      // 👉 HERE IT IS: Your exact working URL
+      const response = await fetch(`${BASE_URL}/mock/${cleanId}?format=POP`);
       const data = await response.json();
-      processExamData(data);
       
-    } catch (error) {
-      console.error('Error fetching questions:', error);
-      setLoading(false);
-    }
-  };
-
-  const processExamData = (data: any) => {
       // Ensure data is an array (safeguard against Django pagination wrappers)
       const questionArray = Array.isArray(data) ? data : (data.results || []);
 
@@ -89,6 +72,10 @@ export default function ExamScreen() {
       setQuestions(formattedData);
       setLoading(false);
       Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      setLoading(false);
+    }
   };
 
   // ─── Timer Logic ─────────────────────────────────────────────────────────
@@ -207,7 +194,7 @@ export default function ExamScreen() {
   // ─── Render 5: The Exam ──────────────────────────────────────────────────
   const currentQ = questions[currentIndex];
 
-  // TypeScript Safety Guard: Ensures currentQ exists before rendering
+  // TypeScript Safety Guard: Stops the red lines!
   if (!currentQ) return null;
 
   return (
