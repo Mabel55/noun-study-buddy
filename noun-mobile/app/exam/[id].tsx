@@ -15,7 +15,6 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
-// Fixed: This interface stops the "type never" and "implicitly any" errors
 interface Question {
   id: number;
   text?: string;
@@ -46,7 +45,6 @@ export default function ExamScreen() {
   const [timeLeft, setTimeLeft] = useState(EXAM_DURATION_MINUTES * 60);
   const [examStarted, setExamStarted] = useState(false);
 
-  // Fixed: Proper typing for the timer reference
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -57,16 +55,17 @@ export default function ExamScreen() {
 
   const fetchQuestions = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/api/questions/?course_id=${id}`);
+      // 1. Clean the ID to ensure the fetch works perfectly
+      const cleanId = String(id).split('?')[0]; 
+      const response = await fetch(`${BASE_URL}/api/courses/${cleanId}/`);
       const data = await response.json();
       
-      // Fixed: Mixed rendering logic handles both question formats.js]
-      const formattedData = data.map((q: any) => ({
-        ...q,
-        qType: q.option_a ? 'CBT' : 'FILL' // Auto-detect question type based on existence of options
-      }));
+      // 2. Extract CBT and Fill-in-the-gap arrays safely
+      const cbt = (data.cbt_questions || []).map((q: any) => ({ ...q, qType: 'CBT' as const }));
+      const fill = (data.fill_questions || []).map((q: any) => ({ ...q, qType: 'FILL' as const }));
       
-      setQuestions(formattedData);
+      // 3. Combine them into one list
+      setQuestions([...cbt, ...fill]);
       setLoading(false);
       Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
     } catch (error) {
@@ -138,6 +137,20 @@ export default function ExamScreen() {
     </SafeAreaView>
   );
 
+  // The Blank Screen Fix: If data comes back empty, tell the user instead of crashing!
+  if (questions.length === 0) {
+    return (
+      <SafeAreaView style={styles.centerContainer}>
+        <Text style={{ fontSize: 50, marginBottom: 15 }}>📭</Text>
+        <Text style={{ fontSize: 18, color: '#1a4d3a', fontWeight: 'bold' }}>No questions available.</Text>
+        <Text style={{ color: '#666', marginTop: 5, marginBottom: 20 }}>This course has no mock questions yet.</Text>
+        <TouchableOpacity style={styles.homeButton} onPress={() => router.back()}>
+          <Text style={styles.homeButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   if (submitted) {
     const percent = Math.round((score / questions.length) * 100);
     return (
@@ -167,7 +180,7 @@ export default function ExamScreen() {
         <Text style={styles.progressText}>Question {currentIndex + 1} of {questions.length}</Text>
       </View>
 
-      {/* Fixed: Scrollable Question Area with Padding for Option D */}
+      {/* Scrollable Question Area */}
       <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
         <Animated.View style={[styles.questionCard, { opacity: fadeAnim }]}>
           <Text style={styles.questionText}>{currentQ?.question_text || currentQ?.text}</Text>
@@ -175,7 +188,7 @@ export default function ExamScreen() {
           {/* Render Multiple Choice (CBT) */}
           {currentQ?.qType === 'CBT' && ['A', 'B', 'C', 'D'].map((letter) => {
             const optionKey = `option_${letter.toLowerCase()}` as keyof Question;
-            const isSelected = selectedAnswers[currentQ.id] === letter;
+            const isSelected = selectedAnswers[currentQ?.id] === letter;
             return (
               <TouchableOpacity
                 key={letter}
@@ -190,12 +203,12 @@ export default function ExamScreen() {
             );
           })}
 
-          {/* Fixed: Render Fill-in-the-Gap (FILL) */}
+          {/* Render Fill-in-the-Gap (FILL) */}
           {currentQ?.qType === 'FILL' && (
             <TextInput
               style={styles.textInput}
               placeholder="Type your answer here..."
-              value={selectedAnswers[currentQ.id] || ''}
+              value={selectedAnswers[currentQ?.id] || ''}
               onChangeText={(text) => setSelectedAnswers(prev => ({ ...prev, [currentQ.id]: text }))}
               autoCapitalize="none"
             />
@@ -203,7 +216,7 @@ export default function ExamScreen() {
         </Animated.View>
       </ScrollView>
 
-      {/* Fixed: Footer Navigation is outside the ScrollView */}
+      {/* Navigation Footer */}
       <View style={styles.footer}>
         <TouchableOpacity 
           style={[styles.navButton, currentIndex === 0 && styles.navDisabled]} 
@@ -240,7 +253,7 @@ export default function ExamScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f7f5' },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f7f5' },
   examHeader: { 
     backgroundColor: '#1a4d3a', 
     padding: 16, 
@@ -301,7 +314,7 @@ const styles = StyleSheet.create({
   resultsContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
   gradeText: { fontSize: 80, fontWeight: '900', color: '#1a4d3a' },
   scoreText: { fontSize: 18, color: '#666', marginVertical: 20 },
-  homeButton: { backgroundColor: '#1a4d3a', padding: 16, borderRadius: 8 },
+  homeButton: { backgroundColor: '#1a4d3a', padding: 16, borderRadius: 8, marginTop: 10 },
   homeButtonText: { color: '#fff', fontWeight: 'bold' },
   startOverlay: { 
     ...StyleSheet.absoluteFillObject, 
