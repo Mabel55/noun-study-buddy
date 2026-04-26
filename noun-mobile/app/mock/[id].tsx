@@ -209,7 +209,7 @@ export default function MockExamPage() {
              
            </View>
         )}
-        <View style={{ height: 120 }} />
+        <View style={{ height: 250 }} />
 
       </ScrollView>
     </View>
