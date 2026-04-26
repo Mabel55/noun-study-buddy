@@ -15,6 +15,20 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
+// ─── TYPES ──────────────────────────────────────────────────────────────────
+interface Question {
+  id: number;
+  text?: string;
+  question_text?: string;
+  option_a?: string;
+  option_b?: string;
+  option_c?: string;
+  option_d?: string;
+  correct_answer: string;
+  qType: 'CBT' | 'FILL';
+}
+
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
 const BASE_URL = 'https://noun-study-buddy-1.onrender.com';
 const EXAM_DURATION_MINUTES = 45;
 
@@ -22,19 +36,19 @@ export default function ExamScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
 
-  const [questions, setQuestions] = useState([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0); 
-  const [selectedAnswers, setSelectedAnswers] = useState({}); 
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({}); 
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(EXAM_DURATION_MINUTES * 60);
   const [examStarted, setExamStarted] = useState(false);
 
-  const timerRef = useRef(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // ─── Fetch Questions using the correct endpoint ─────────────────────────
+  // ─── Fetch Questions ─────────────────────────────────────────────────────
   useEffect(() => {
     if (id) fetchQuestions();
   }, [id]);
@@ -42,14 +56,14 @@ export default function ExamScreen() {
   const fetchQuestions = async () => {
     try {
       const cleanId = String(id).split('?')[0]; 
-      // Using your flat questions array endpoint
-      const response = await fetch(`${BASE_URL}/api/questions/?course_id=${cleanId}`);
+      
+      // Fetching from your new POP mock endpoint
+      const response = await fetch(`${BASE_URL}/mock/${cleanId}?format=POP`);
       const data = await response.json();
       
-      // Ensure data is an array (in case the API returns an object with a 'results' key)
       const questionArray = Array.isArray(data) ? data : (data.results || []);
 
-      const formattedData = questionArray.map((q) => ({
+      const formattedData = questionArray.map((q: any) => ({
         ...q,
         qType: q.option_a ? 'CBT' : 'FILL'
       }));
@@ -80,7 +94,7 @@ export default function ExamScreen() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [examStarted, submitted]);
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
     const secs = (seconds % 60).toString().padStart(2, '0');
     return `${mins}:${secs}`;
@@ -91,7 +105,7 @@ export default function ExamScreen() {
     if (!autoSubmit) {
       const unanswered = questions.length - Object.keys(selectedAnswers).length;
       if (unanswered > 0) {
-        if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
            if (window.confirm(`You have ${unanswered} unanswered question(s). Submit now?`)) {
              calculateScore();
            }
@@ -179,6 +193,9 @@ export default function ExamScreen() {
   // ─── Render 5: The Exam ──────────────────────────────────────────────────
   const currentQ = questions[currentIndex];
 
+  // The Magic Fix: Tell TypeScript currentQ definitely exists here!
+  if (!currentQ) return null;
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a4d3a" />
@@ -192,11 +209,12 @@ export default function ExamScreen() {
 
       <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
         <Animated.View style={[styles.questionCard, { opacity: fadeAnim }]}>
-          <Text style={styles.questionText}>{currentQ?.question_text || currentQ?.text}</Text>
+          {/* Safe to use currentQ without ?. now */}
+          <Text style={styles.questionText}>{currentQ.question_text || currentQ.text}</Text>
 
-          {currentQ?.qType === 'CBT' && ['A', 'B', 'C', 'D'].map((letter) => {
-            const optionKey = `option_${letter.toLowerCase()}`;
-            const isSelected = selectedAnswers[currentQ?.id] === letter;
+          {currentQ.qType === 'CBT' && ['A', 'B', 'C', 'D'].map((letter) => {
+            const optionKey = `option_${letter.toLowerCase()}` as keyof Question;
+            const isSelected = selectedAnswers[currentQ.id] === letter;
             return (
               <TouchableOpacity
                 key={letter}
@@ -205,17 +223,17 @@ export default function ExamScreen() {
               >
                 <View style={[styles.radio, isSelected && styles.radioActive]} />
                 <Text style={[styles.optionText, isSelected && styles.optionTextActive]}>
-                  {letter}. {currentQ[optionKey]}
+                  {letter}. {currentQ[optionKey] as string}
                 </Text>
               </TouchableOpacity>
             );
           })}
 
-          {currentQ?.qType === 'FILL' && (
+          {currentQ.qType === 'FILL' && (
             <TextInput
               style={styles.textInput}
               placeholder="Type your answer here..."
-              value={selectedAnswers[currentQ?.id] || ''}
+              value={selectedAnswers[currentQ.id] || ''}
               onChangeText={(text) => setSelectedAnswers(prev => ({ ...prev, [currentQ.id]: text }))}
               autoCapitalize="none"
             />
