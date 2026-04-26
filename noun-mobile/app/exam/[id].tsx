@@ -57,10 +57,28 @@ export default function ExamScreen() {
     try {
       const cleanId = String(id).split('?')[0]; 
       
-      // Fetching from your new POP mock endpoint
-      const response = await fetch(`${BASE_URL}/mock/${cleanId}?format=POP`);
-      const data = await response.json();
+      // Try fetching the mock exams filtered by course_id
+      const response = await fetch(`${BASE_URL}/api/mock-exams/?course_id=${cleanId}`);
       
+      if (!response.ok) {
+         // Fallback just in case your Django model uses 'course' exactly instead of 'course_id'
+         const fallbackResponse = await fetch(`${BASE_URL}/api/mock-exams/?course=${cleanId}`);
+         const fallbackData = await fallbackResponse.json();
+         processExamData(fallbackData);
+         return;
+      }
+
+      const data = await response.json();
+      processExamData(data);
+      
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      setLoading(false);
+    }
+  };
+
+  const processExamData = (data: any) => {
+      // Ensure data is an array (safeguard against Django pagination wrappers)
       const questionArray = Array.isArray(data) ? data : (data.results || []);
 
       const formattedData = questionArray.map((q: any) => ({
@@ -71,10 +89,6 @@ export default function ExamScreen() {
       setQuestions(formattedData);
       setLoading(false);
       Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
-    } catch (error) {
-      console.error('Error fetching questions:', error);
-      setLoading(false);
-    }
   };
 
   // ─── Timer Logic ─────────────────────────────────────────────────────────
@@ -193,7 +207,7 @@ export default function ExamScreen() {
   // ─── Render 5: The Exam ──────────────────────────────────────────────────
   const currentQ = questions[currentIndex];
 
-  // The Magic Fix: Tell TypeScript currentQ definitely exists here!
+  // TypeScript Safety Guard: Ensures currentQ exists before rendering
   if (!currentQ) return null;
 
   return (
@@ -209,7 +223,6 @@ export default function ExamScreen() {
 
       <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
         <Animated.View style={[styles.questionCard, { opacity: fadeAnim }]}>
-          {/* Safe to use currentQ without ?. now */}
           <Text style={styles.questionText}>{currentQ.question_text || currentQ.text}</Text>
 
           {currentQ.qType === 'CBT' && ['A', 'B', 'C', 'D'].map((letter) => {
