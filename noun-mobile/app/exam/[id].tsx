@@ -15,16 +15,17 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
-// Defining this interface stops the "type never" and "implicitly any" errors
+// Fixed: This interface stops the "type never" and "implicitly any" errors
 interface Question {
   id: number;
   text?: string;
   question_text?: string;
-  option_a: string;
-  option_b: string;
-  option_c: string;
-  option_d: string;
+  option_a?: string;
+  option_b?: string;
+  option_c?: string;
+  option_d?: string;
   correct_answer: string;
+  qType: 'CBT' | 'FILL';
 }
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
@@ -45,7 +46,7 @@ export default function ExamScreen() {
   const [timeLeft, setTimeLeft] = useState(EXAM_DURATION_MINUTES * 60);
   const [examStarted, setExamStarted] = useState(false);
 
-  // Proper typing for the timer reference
+  // Fixed: Proper typing for the timer reference
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -58,7 +59,14 @@ export default function ExamScreen() {
     try {
       const response = await fetch(`${BASE_URL}/api/questions/?course_id=${id}`);
       const data = await response.json();
-      setQuestions(data);
+      
+      // Fixed: Mixed rendering logic handles both question formats.js]
+      const formattedData = data.map((q: any) => ({
+        ...q,
+        qType: q.option_a ? 'CBT' : 'FILL' // Auto-detect question type based on existence of options
+      }));
+      
+      setQuestions(formattedData);
       setLoading(false);
       Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
     } catch (error) {
@@ -111,17 +119,19 @@ export default function ExamScreen() {
 
   const calculateScore = () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    let correct = 0;
+    let correctCount = 0;
     questions.forEach((q) => {
-      if (selectedAnswers[q.id] === q.correct_answer) {
-        correct++;
+      const userAnswer = (selectedAnswers[q.id] || "").trim().toLowerCase();
+      const correctAnswer = q.correct_answer.trim().toLowerCase();
+      if (userAnswer === correctAnswer) {
+        correctCount++;
       }
     });
-    setScore(correct);
+    setScore(correctCount);
     setSubmitted(true);
   };
 
-  // ─── Render Helpers ──────────────────────────────────────────────────────
+  // ─── Render Logic ──────────────────────────────────────────────────────
   if (loading) return (
     <SafeAreaView style={styles.centerContainer}>
       <ActivityIndicator size="large" color="#1a4d3a" />
@@ -134,7 +144,7 @@ export default function ExamScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.resultsContainer}>
           <Text style={styles.gradeText}>{percent}%</Text>
-          <Text style={styles.scoreText}>Final Score: {score}/{questions.length}</Text>
+          <Text style={styles.scoreText}>You scored {score} out of {questions.length}</Text>
           <TouchableOpacity style={styles.homeButton} onPress={() => router.back()}>
             <Text style={styles.homeButtonText}>Return to Course</Text>
           </TouchableOpacity>
@@ -157,33 +167,43 @@ export default function ExamScreen() {
         <Text style={styles.progressText}>Question {currentIndex + 1} of {questions.length}</Text>
       </View>
 
-      {/* Main Question Area */}
+      {/* Fixed: Scrollable Question Area with Padding for Option D */}
       <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
         <Animated.View style={[styles.questionCard, { opacity: fadeAnim }]}>
           <Text style={styles.questionText}>{currentQ?.question_text || currentQ?.text}</Text>
 
-          <View style={styles.optionsContainer}>
-            {['A', 'B', 'C', 'D'].map((letter) => {
-              const optionKey = `option_${letter.toLowerCase()}` as keyof Question;
-              const isSelected = selectedAnswers[currentQ.id] === letter;
-              return (
-                <TouchableOpacity
-                  key={letter}
-                  style={[styles.optionButton, isSelected && styles.optionSelected]}
-                  onPress={() => setSelectedAnswers(prev => ({ ...prev, [currentQ.id]: letter }))}
-                >
-                  <View style={[styles.radio, isSelected && styles.radioActive]} />
-                  <Text style={[styles.optionText, isSelected && styles.optionTextActive]}>
-                    {letter}. {currentQ[optionKey] as string}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {/* Render Multiple Choice (CBT) */}
+          {currentQ?.qType === 'CBT' && ['A', 'B', 'C', 'D'].map((letter) => {
+            const optionKey = `option_${letter.toLowerCase()}` as keyof Question;
+            const isSelected = selectedAnswers[currentQ.id] === letter;
+            return (
+              <TouchableOpacity
+                key={letter}
+                style={[styles.optionButton, isSelected && styles.optionSelected]}
+                onPress={() => setSelectedAnswers(prev => ({ ...prev, [currentQ.id]: letter }))}
+              >
+                <View style={[styles.radio, isSelected && styles.radioActive]} />
+                <Text style={[styles.optionText, isSelected && styles.optionTextActive]}>
+                  {letter}. {currentQ[optionKey] as string}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* Fixed: Render Fill-in-the-Gap (FILL) */}
+          {currentQ?.qType === 'FILL' && (
+            <TextInput
+              style={styles.textInput}
+              placeholder="Type your answer here..."
+              value={selectedAnswers[currentQ.id] || ''}
+              onChangeText={(text) => setSelectedAnswers(prev => ({ ...prev, [currentQ.id]: text }))}
+              autoCapitalize="none"
+            />
+          )}
         </Animated.View>
       </ScrollView>
 
-      {/* Navigation Footer */}
+      {/* Fixed: Footer Navigation is outside the ScrollView */}
       <View style={styles.footer}>
         <TouchableOpacity 
           style={[styles.navButton, currentIndex === 0 && styles.navDisabled]} 
@@ -210,7 +230,7 @@ export default function ExamScreen() {
       {!examStarted && (
         <View style={styles.startOverlay}>
            <TouchableOpacity style={styles.startButton} onPress={() => setExamStarted(true)}>
-             <Text style={styles.startButtonText}>Start Exam 🚀</Text>
+             <Text style={styles.startButtonText}>Begin Exam 🚀</Text>
            </TouchableOpacity>
         </View>
       )}
@@ -257,6 +277,14 @@ const styles = StyleSheet.create({
   radioActive: { borderColor: '#1a4d3a', backgroundColor: '#1a4d3a' },
   optionText: { fontSize: 15, color: '#444', flex: 1 },
   optionTextActive: { color: '#1a4d3a', fontWeight: 'bold' },
+  textInput: { 
+    borderWidth: 1, 
+    borderColor: '#eee', 
+    borderRadius: 12, 
+    padding: 16, 
+    fontSize: 16, 
+    backgroundColor: '#fafafa' 
+  },
   footer: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
