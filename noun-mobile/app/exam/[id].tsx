@@ -39,13 +39,16 @@ export default function ExamScreen() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0); 
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({}); 
+  
+  // FIX 1: <any> tells TypeScript to accept any key-value pair, removing the red lines
+  const [selectedAnswers, setSelectedAnswers] = useState<any>({}); 
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(EXAM_DURATION_MINUTES * 60);
   const [examStarted, setExamStarted] = useState(false);
 
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // FIX 2: <any> stops the "Node.js Timeout" vs "React.js Timeout" red line error
+  const timerRef = useRef<any>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // ─── Fetch Questions (Using YOUR working URL!) ───────────────────────────
@@ -57,11 +60,9 @@ export default function ExamScreen() {
     try {
       const cleanId = String(id).split('?')[0]; 
       
-      // 👉 HERE IT IS: Your exact working URL
-      const response = await fetch(`${BASE_URL}/api/mock-exams/?course=${cleanId}`);
+      const response = await fetch(`${BASE_URL}/mock/${cleanId}?format=POP`);
       const data = await response.json();
       
-      // Ensure data is an array (safeguard against Django pagination wrappers)
       const questionArray = Array.isArray(data) ? data : (data.results || []);
 
       const formattedData = questionArray.map((q: any) => ({
@@ -84,7 +85,7 @@ export default function ExamScreen() {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
-            if (timerRef.current) clearInterval(timerRef.current);
+            clearInterval(timerRef.current);
             handleSubmit(true); 
             return 0;
           }
@@ -106,7 +107,7 @@ export default function ExamScreen() {
     if (!autoSubmit) {
       const unanswered = questions.length - Object.keys(selectedAnswers).length;
       if (unanswered > 0) {
-        if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+        if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.confirm === 'function') {
            if (window.confirm(`You have ${unanswered} unanswered question(s). Submit now?`)) {
              calculateScore();
            }
@@ -194,7 +195,6 @@ export default function ExamScreen() {
   // ─── Render 5: The Exam ──────────────────────────────────────────────────
   const currentQ = questions[currentIndex];
 
-  // TypeScript Safety Guard: Stops the red lines!
   if (!currentQ) return null;
 
   return (
@@ -219,7 +219,7 @@ export default function ExamScreen() {
               <TouchableOpacity
                 key={letter}
                 style={[styles.optionButton, isSelected && styles.optionSelected]}
-                onPress={() => setSelectedAnswers(prev => ({ ...prev, [currentQ.id]: letter }))}
+                onPress={() => setSelectedAnswers((prev: any) => ({ ...prev, [currentQ.id]: letter }))}
               >
                 <View style={[styles.radio, isSelected && styles.radioActive]} />
                 <Text style={[styles.optionText, isSelected && styles.optionTextActive]}>
@@ -234,7 +234,7 @@ export default function ExamScreen() {
               style={styles.textInput}
               placeholder="Type your answer here..."
               value={selectedAnswers[currentQ.id] || ''}
-              onChangeText={(text) => setSelectedAnswers(prev => ({ ...prev, [currentQ.id]: text }))}
+              onChangeText={(text) => setSelectedAnswers((prev: any) => ({ ...prev, [currentQ.id]: text }))}
               autoCapitalize="none"
             />
           )}
@@ -277,6 +277,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between', 
     alignItems: 'center' 
   },
+  // FIX 3: timerContainer added to the styles so the red line on line 228 goes away
   timerContainer: { 
     flexDirection: 'row', 
     alignItems: 'center',
