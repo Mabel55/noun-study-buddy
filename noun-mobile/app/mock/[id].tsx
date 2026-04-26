@@ -109,7 +109,7 @@ export default function MockExamPage() {
       </View>
 
       {/* QUESTIONS AREA */}
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView style={styles.container}>
         
         {/* Render CBT Questions (Multiple Choice) */}
         {activeTab === 'CBT' && hasCBT ? (
@@ -206,8 +206,10 @@ export default function MockExamPage() {
         ) : activeTab === 'FILL' && (
            <View style={styles.emptyCard}>
              <Text style={styles.placeholderText}>No Fill-in-the-gap questions generated yet.</Text>
+             
            </View>
         )}
+        <View style={{ height: 120 }} />
 
       </ScrollView>
     </View>
