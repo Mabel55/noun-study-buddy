@@ -53,30 +53,44 @@ export default function ExamScreen() {
 
   // ─── Fetch Questions (Using YOUR working URL!) ───────────────────────────
   useEffect(() => {
-    if (id) fetchQuestions();
+    if (!id) return;
+    fetchQuestions();
   }, [id]);
 
   const fetchQuestions = async () => {
     try {
       const cleanId = String(id).split('?')[0]; 
       
-      // 👉 This matches the style of your working Summary page
-      const response = await fetch(`https://noun-study-buddy-1.onrender.com/api/mock-exams/?course_id=${cleanId}`)
-      
+      // We hit the COURSE endpoint because your serializer puts the questions there!
+      const response = await fetch(`https://noun-study-buddy-1.onrender.com/api/courses/${cleanId}/`);
       const data = await response.json();
       
-      // Your summary page uses 'data' directly or 'data.course_summaries'
-      // We'll handle the array or the results wrapper here
-      const questionArray = Array.isArray(data) ? data : (data.results || []);
+      console.log("Master Data Received:", data);
 
-      const formattedData = questionArray.map((q: any) => ({
-        ...q,
-        qType: q.option_a ? 'CBT' : 'FILL'
-      }));
+      // ─── THE FIX: Grabbing data from your specific Serializer names ───
+      // We combine CBT and FILL questions into one list for the exam
+      const allQuestions = [
+        ...(data.cbt_questions || []),
+        ...(data.fill_questions || []),
+        ...(data.pop_questions || [])
+      ];
+
+      if (allQuestions.length === 0) {
+        console.warn("No questions found in cbt_questions or fill_questions");
+        setQuestions([]); // This triggers the empty state
+      } else {
+        // Format them so the app knows how to render each one
+        const formattedData = allQuestions.map((q: any) => ({
+          ...q,
+          // If it has option_a, it's a Multiple Choice (CBT), otherwise it's FILL
+          qType: q.option_a ? 'CBT' : 'FILL'
+        }));
+        
+        setQuestions(formattedData);
+        // If you are in mock/[id].tsx, you might use setCourseData(formattedData) instead
+      }
       
-      setQuestions(formattedData);
       setLoading(false);
-      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
     } catch (error) {
       console.error('Error fetching questions:', error);
       setLoading(false);

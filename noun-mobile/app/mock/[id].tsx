@@ -22,23 +22,39 @@ export default function MockExamPage() {
 
   useEffect(() => {
     if (!cleanId) return;
-    
-    // IMPORTANT: Using localhost so the browser doesn't block it!
-    fetch(`https://noun-study-buddy-1.onrender.com/api/mock-exams/?course_id=${cleanId}`)
-      .then(res => {
-          if (!res.ok) console.warn("Django Error: " + res.status);
-          return res.json();
-      })
-      .then(data => {
-        setCourseData(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, [cleanId]);
 
+    fetch(`https://noun-study-buddy-1.onrender.com/api/mock-exams/?course_id=${cleanId}`)
+    .then(res => res.json())
+    .then(data => {
+        console.log("RAW DATA RECEIVED:", data);
+
+        // This logic hunts for the questions in the three most common Django structures
+        let finalQuestions = [];
+        
+        if (Array.isArray(data)) {
+            // Case 1: Simple List
+            finalQuestions = data;
+        } else if (data.results && Array.isArray(data.results)) {
+            // Case 2: Standard API Pagination
+            finalQuestions = data.results;
+        } else if (data.questions && Array.isArray(data.questions)) {
+            // Case 3: Nested object (Common in your Summary logic)
+            finalQuestions = data.questions;
+        }
+
+        if (finalQuestions.length > 0) {
+            setCourseData(finalQuestions);
+        } else {
+            console.warn("Found 0 questions in the data object. Check console.log above.");
+        }
+        
+        setLoading(false);
+    })
+    .catch(err => {
+        console.error("Connection Error:", err);
+        setLoading(false);
+    });
+}, [cleanId]);
   if (loading) {
     return <ActivityIndicator size="large" color="#006400" style={{ marginTop: 50 }} />;
   }
