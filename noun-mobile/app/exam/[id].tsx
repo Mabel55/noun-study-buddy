@@ -58,7 +58,7 @@ export default function ExamScreen() {
       const cleanId = String(id).split('?')[0]; 
       
       // 👉 HERE IT IS: Your exact working URL
-      const response = await fetch(`${BASE_URL}/mock/${cleanId}?format=POP`);
+      const response = await fetch(`${BASE_URL}/api/mock-exams/?course=${cleanId}`);
       const data = await response.json();
       
       // Ensure data is an array (safeguard against Django pagination wrappers)
