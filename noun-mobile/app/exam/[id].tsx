@@ -60,10 +60,13 @@ export default function ExamScreen() {
     try {
       const cleanId = String(id).split('?')[0]; 
       
-      const response = await fetch(`${BASE_URL}/api/questions/?course=${cleanId}`);
-
+      // 👉 This matches the style of your working Summary page
+      const response = await fetch(`https://noun-study-buddy-1.onrender.com/api/mock-exams/?course_id=${cleanId}`);
+      
       const data = await response.json();
       
+      // Your summary page uses 'data' directly or 'data.course_summaries'
+      // We'll handle the array or the results wrapper here
       const questionArray = Array.isArray(data) ? data : (data.results || []);
 
       const formattedData = questionArray.map((q: any) => ({
@@ -79,7 +82,6 @@ export default function ExamScreen() {
       setLoading(false);
     }
   };
-
   // ─── Timer Logic ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (examStarted && !submitted) {
