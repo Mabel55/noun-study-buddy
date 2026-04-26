@@ -23,7 +23,7 @@ export default function MockExamPage() {
   useEffect(() => {
     if (!cleanId) return;
 
-    fetch(`https://noun-study-buddy-1.onrender.com/api/mock-exams/?course_id=${cleanId}`)
+    fetch(`https://noun-study-buddy.onrender.com/api/mock-exams/?course_id=${cleanId}`)
     .then(res => res.json())
     .then(data => {
         console.log("RAW DATA RECEIVED:", data);

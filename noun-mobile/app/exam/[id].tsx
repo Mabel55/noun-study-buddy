@@ -22,7 +22,7 @@ export default function MockExamPage() {
     const cleanId = String(id).split('?')[0];
     
     // Using the master course endpoint that worked for summaries
-    fetch(`https://noun-study-buddy-1.onrender.com/api/courses/${cleanId}/`)
+    fetch(`https://noun-study-buddy.onrender.com/api/courses/${cleanId}/`)
       .then((res) => res.json())
       .then((data) => {
         setCourseData(data);
