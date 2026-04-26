@@ -60,7 +60,7 @@ export default function ExamScreen() {
     try {
       const cleanId = String(id).split('?')[0]; 
       
-      const response = await fetch(`${BASE_URL}/api/mock-exams/?course=${cleanId}`);
+      const response = await fetch(`${BASE_URL}/mock/${cleanId}?format=CBT`);
       const data = await response.json();
       
       const questionArray = Array.isArray(data) ? data : (data.results || []);
