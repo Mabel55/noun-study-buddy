@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 
 export default function CourseDetails() {
@@ -31,7 +31,7 @@ export default function CourseDetails() {
         <Text style={styles.courseTitle}>{courseData?.title}</Text>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content}>
         <Text style={styles.promptText}>What would you like to do?</Text>
 
         {/* 1. Summary Button */}
@@ -51,7 +51,7 @@ export default function CourseDetails() {
   <Text style={styles.actionIcon}>⏱️</Text>
   <Text style={styles.actionText}>Take Timed Mock Exam</Text>
 </TouchableOpacity>
-</View>
+</ScrollView>
     </SafeAreaView>
   );
 }
