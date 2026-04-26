@@ -109,7 +109,7 @@ export default function MockExamPage() {
       </View>
 
       {/* QUESTIONS AREA */}
-      <ScrollView style={styles.container}>
+      <ScrollView style={[styles.container, { marginBottom: 100 }]} contentContainerStyle={{ flexGrow: 1, paddingBottom: 50 }}>
         
         {/* Render CBT Questions (Multiple Choice) */}
         {activeTab === 'CBT' && hasCBT ? (
@@ -209,7 +209,7 @@ export default function MockExamPage() {
              
            </View>
         )}
-        <View style={{ height: 250 }} />
+      
 
       </ScrollView>
     </View>
