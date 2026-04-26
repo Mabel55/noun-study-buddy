@@ -24,7 +24,7 @@ export default function MockExamPage() {
     if (!cleanId) return;
     
     // IMPORTANT: Using localhost so the browser doesn't block it!
-    fetch(`https://noun-study-buddy.onrender.com/api/courses/${cleanId}/`)
+    fetch(`https://noun-study-buddy-1.onrender.com/api/mock-exams/?course_id=${cleanId}`)
       .then(res => {
           if (!res.ok) console.warn("Django Error: " + res.status);
           return res.json();
