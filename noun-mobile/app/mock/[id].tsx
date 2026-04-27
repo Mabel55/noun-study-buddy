@@ -52,32 +52,38 @@ export default function MockExamEngine() {
       const getData = async (url: string, type: string) => {
         try {
           const res = await fetch(url);
+          if (!res.ok) {
+            console.log("API Error for:", url);
+            return [];
+          }
           const data = await res.json();
+          // We trust the backend to filter it, so we just map the results
           const list = Array.isArray(data) ? data : (data.results || []);
-          return list.filter((q: any) => {
-            const cId = String(q.course?.id || q.course || q.course_id || '');
-            return cId === cleanId;
-          }).map((q: any) => ({ ...q, qType: type }));
-        } catch (e) { return []; }
+          return list.map((q: any) => ({ ...q, qType: type }));
+        } catch (e) { 
+          console.error("Fetch failed:", e);
+          return []; 
+        }
       };
 
-      // Limit=500 ensures we grab everything from the Django backend
+      // We go back to asking the backend specifically for this course_id!
       const [mcqs, fills, pops] = await Promise.all([
-        getData(`${BASE_URL}/api/questions/?limit=500`, 'CBT'),
-        getData(`${BASE_URL}/api/fill-in-gaps/?limit=500`, 'FILL'),
-        getData(`${BASE_URL}/api/pop-questions/?limit=500`, 'POP')
+        getData(`${BASE_URL}/api/questions/?course_id=${cleanId}`, 'CBT'),
+        getData(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL'),
+        getData(`${BASE_URL}/api/pop-questions/?course_id=${cleanId}`, 'POP')
       ]);
 
       let all = [];
       if (isStudyMode) {
-        all = [...mcqs, ...fills, ...pops];
+        all = [...mcqs, ...fills, ...pops]; // Study mode gets everything
       } else {
-        all = isPopFormat ? [...pops, ...fills] : [...mcqs, ...fills];
+        all = isPopFormat ? [...pops, ...fills] : [...mcqs, ...fills]; // Exam mode is strict
       }
 
       setQuestions(all);
       setLoading(false);
     } catch (err) {
+      console.error("Main fetch error:", err);
       setLoading(false);
     }
   };
