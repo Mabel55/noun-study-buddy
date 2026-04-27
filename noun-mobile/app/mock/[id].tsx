@@ -47,42 +47,56 @@ export default function MockExamEngine() {
   const fetchQuestions = async () => {
     try {
       const cleanId = String(id).split('?')[0];
+      // 👉 FIX 1: Expo Router sometimes hides 'format' inside the ID string
       const isPOP = format === 'POP' || String(id).includes('format=POP');
-      
+
       let allQuestions: any[] = [];
 
       if (isPOP) {
-        // 1. Fetch POP Theory Questions
-        const popRes = await fetch(`${BASE_URL}/api/courses/${cleanId}/pop-questions/`);
+        // Fetch POP theory questions
+        const popRes = await fetch(
+          `${BASE_URL}/api/pop-questions/?course_id=${cleanId}`
+        );
         if (popRes.ok) {
           const popData = await popRes.json();
-          const popQ = Array.isArray(popData) ? popData.map((q: any) => ({ ...q, qType: 'POP' })) : [];
+          const popQ = Array.isArray(popData)
+            ? popData
+                // 👉 FIX 2: Safety Filter! Deletes questions that don't belong here
+                .filter((q: any) => String(q.course) === cleanId || String(q.course_id) === cleanId)
+                .map((q: any) => ({ ...q, qType: 'POP' }))
+            : [];
           allQuestions = [...allQuestions, ...popQ];
         }
-
-        // 2. Fetch Fill-in-the-gap Questions
-        const fillRes = await fetch(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`);
-        if (fillRes.ok) {
-          const fillData = await fillRes.json();
-          const fillQ = Array.isArray(fillData) ? fillData.map((q: any) => ({ ...q, qType: 'FILL' })) : [];
-          allQuestions = [...allQuestions, ...fillQ];
-        }
       } else {
-        // 3. 🚀 FIXED: Fetch Multiple Choice from its dedicated Django endpoint!
-        const mcqRes = await fetch(`${BASE_URL}/api/questions/?course_id=${cleanId}`);
+        // Fetch MCQ questions
+        const mcqRes = await fetch(
+          `${BASE_URL}/api/questions/?course_id=${cleanId}`
+        );
         if (mcqRes.ok) {
           const mcqData = await mcqRes.json();
-          const mcqQ = Array.isArray(mcqData) ? mcqData.map((q: any) => ({ ...q, qType: 'CBT' })) : [];
+          const mcqQ = Array.isArray(mcqData)
+            ? mcqData
+                // 👉 FIX 2: Safety Filter! Deletes questions that don't belong here
+                .filter((q: any) => String(q.course) === cleanId || String(q.course_id) === cleanId)
+                .map((q: any) => ({ ...q, qType: 'CBT' }))
+            : [];
           allQuestions = [...allQuestions, ...mcqQ];
         }
+      }
 
-        // 4. Fetch Fill-in-the-gap for CBT
-        const fillRes = await fetch(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`);
-        if (fillRes.ok) {
-          const fillData = await fillRes.json();
-          const fillQ = Array.isArray(fillData) ? fillData.map((q: any) => ({ ...q, qType: 'FILL' })) : [];
-          allQuestions = [...allQuestions, ...fillQ];
-        }
+      // Always fetch fill-in-gap for both CBT and POP
+      const fillRes = await fetch(
+        `${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`
+      );
+      if (fillRes.ok) {
+        const fillData = await fillRes.json();
+        const fillQ = Array.isArray(fillData)
+          ? fillData
+              // 👉 FIX 2: Safety Filter! Deletes questions that don't belong here
+              .filter((q: any) => String(q.course) === cleanId || String(q.course_id) === cleanId)
+              .map((q: any) => ({ ...q, qType: 'FILL' }))
+          : [];
+        allQuestions = [...allQuestions, ...fillQ];
       }
 
       setQuestions(allQuestions);
