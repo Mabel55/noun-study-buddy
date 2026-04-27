@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 export default function CourseDetails() {
   const { id } = useLocalSearchParams();
   const [courseData, setCourseData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     fetch(`https://noun-study-buddy.onrender.com/api/courses/${id}/`)
@@ -40,18 +41,18 @@ export default function CourseDetails() {
           <Text style={styles.actionText}>Read Summary</Text>
         </TouchableOpacity>
 
-        {/* 2. Questions and Answers Button (For POP essays) */}
-        <TouchableOpacity style={styles.actionCard} onPress={() => router.push(`/mock/${id}?format=POP` as any)}>
+        {/* 2. Questions and Answers Button (FIXED: Now routes to standard CBT!) */}
+        <TouchableOpacity style={styles.actionCard} onPress={() => router.push(`/mock/${id}` as any)}>
           <Text style={styles.actionIcon}>💡</Text>
           <Text style={styles.actionText}>Questions and Answers</Text>
         </TouchableOpacity>
 
-        {/* 3. Mock Exam Button (For CBT) */}
-<TouchableOpacity style={styles.actionCard} onPress={() => router.push(`/exam/${id}` as any)}>
-  <Text style={styles.actionIcon}>⏱️</Text>
-  <Text style={styles.actionText}>Take Timed Mock Exam</Text>
-</TouchableOpacity>
-</ScrollView>
+        {/* 3. Mock Exam Button */}
+        <TouchableOpacity style={styles.actionCard} onPress={() => router.push(`/exam/${id}` as any)}>
+          <Text style={styles.actionIcon}>⏱️</Text>
+          <Text style={styles.actionText}>Take Timed Mock Exam</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }
