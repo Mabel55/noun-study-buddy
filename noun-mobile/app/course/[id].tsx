@@ -41,16 +41,22 @@ export default function CourseDetails() {
           <Text style={styles.actionText}>Read Summary</Text>
         </TouchableOpacity>
 
-        {/* 2. Questions and Answers Button (FIXED: Now routes to standard CBT!) */}
-        <TouchableOpacity style={styles.actionCard} onPress={() => router.push(`/mock/${id}` as any)}>
-          <Text style={styles.actionIcon}>💡</Text>
-          <Text style={styles.actionText}>Questions and Answers</Text>
+        {/* 2. POP Exam Button (Forces the engine into Theory Mode) */}
+        <TouchableOpacity style={styles.actionCard} onPress={() => router.push(`/mock/${id}?format=POP` as any)}>
+          <Text style={styles.actionIcon}>📝</Text>
+          <View>
+            <Text style={styles.actionText}>POP Questions</Text>
+            <Text style={styles.subText}>(Theory & Fill-in-gap)</Text>
+          </View>
         </TouchableOpacity>
 
-        {/* 3. Mock Exam Button */}
-        <TouchableOpacity style={styles.actionCard} onPress={() => router.push(`/exam/${id}` as any)}>
-          <Text style={styles.actionIcon}>⏱️</Text>
-          <Text style={styles.actionText}>Take Timed Mock Exam</Text>
+        {/* 3. CBT Exam Button (Forces the engine into MCQ Mode) */}
+        <TouchableOpacity style={styles.actionCard} onPress={() => router.push(`/mock/${id}` as any)}>
+          <Text style={styles.actionIcon}>💻</Text>
+          <View>
+             <Text style={styles.actionText}>CBT Mock Exam</Text>
+             <Text style={styles.subText}>(Multiple Choice)</Text>
+          </View>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -80,5 +86,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4
   },
   actionIcon: { fontSize: 30, marginRight: 15 },
-  actionText: { fontSize: 18, fontWeight: 'bold', color: '#006400' }
+  actionText: { fontSize: 18, fontWeight: 'bold', color: '#006400' },
+  subText: { fontSize: 13, color: '#666', marginTop: 2 }
 });
