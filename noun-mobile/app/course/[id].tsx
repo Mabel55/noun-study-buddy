@@ -1,17 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ActivityIndicator, 
-  SafeAreaView, 
-  ScrollView,
-  StatusBar
+  View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, 
+  SafeAreaView, ScrollView, StatusBar, Platform 
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 const NOUN_GREEN = '#006600';
+const NOUN_LIGHT_GREEN = '#e8f5e9';
 
 export default function CourseDetails() {
   const { id } = useLocalSearchParams();
@@ -26,30 +21,20 @@ export default function CourseDetails() {
         setCourseData(data);
         setLoading(false);
       })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+      .catch(err => setLoading(false));
   }, [id]);
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.center}>
-        <ActivityIndicator size="large" color={NOUN_GREEN} />
-      </SafeAreaView>
-    );
-  }
+  if (loading) return <SafeAreaView style={styles.center}><ActivityIndicator size="large" color={NOUN_GREEN} /></SafeAreaView>;
 
-  // 🚀 NOUN LEVEL LOGIC: Checks if it's a 100L/200L course (CBT) or 300L/400L course (POP)
+  // Smart Level Logic
   const courseCode = courseData?.code || '';
-  const firstDigitMatch = courseCode.match(/\d/); 
-  const isPOPLevel = firstDigitMatch && parseInt(firstDigitMatch[0], 10) >= 3;
+  const firstDigit = courseCode.match(/\d/); 
+  const isPOP = firstDigit && parseInt(firstDigit[0], 10) >= 3;
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={NOUN_GREEN} />
       
-      {/* HEADER SECTION */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backText}>← Back</Text>
@@ -61,47 +46,37 @@ export default function CourseDetails() {
       <ScrollView style={styles.content}>
         <Text style={styles.promptText}>What would you like to do?</Text>
 
-        {/* 1. SUMMARY BUTTON */}
-        <TouchableOpacity 
-          style={styles.actionCard} 
-          onPress={() => router.push(`/summary/${id}` as any)}
-        >
-          <View style={styles.iconCircle}><Text style={styles.actionIcon}>📖</Text></View>
-          <View style={styles.textContainer}>
-            <Text style={styles.actionTitle}>Read Course Summary</Text>
-            <Text style={styles.actionSub}>Quick notes and key points</Text>
-          </View>
+        {/* 1. Summary */}
+        <TouchableOpacity style={styles.actionCard} onPress={() => router.push(`/summary/${id}` as any)}>
+          <View style={styles.iconCircle}><Text style={{fontSize: 24}}>📖</Text></View>
+          <View><Text style={styles.actionTitle}>Read Summary</Text></View>
         </TouchableOpacity>
 
-        {/* 2. QUESTIONS & ANSWERS (STUDY MODE) */}
-        {/* This button forces the engine to show NO timer and reveal all MCQs */}
+        {/* 2. FIX: Questions and Answers (NO TIMER / NO BEGIN EXAM) */}
         <TouchableOpacity 
           style={styles.actionCard} 
           onPress={() => router.push(`/mock/${id}?mode=study` as any)}
         >
           <View style={[styles.iconCircle, {backgroundColor: '#e3f2fd'}]}>
-            <Text style={styles.actionIcon}>💡</Text>
+            <Text style={{fontSize: 24}}>💡</Text>
           </View>
-          <View style={styles.textContainer}>
+          <View>
             <Text style={styles.actionTitle}>Questions and Answers</Text>
-            <Text style={styles.actionSub}>Study mode • No timer</Text>
+            <Text style={{fontSize: 12, color: '#666'}}>Study Mode • Answers revealed</Text>
           </View>
         </TouchableOpacity>
 
-        {/* 3. TIMED MOCK EXAM (EXAM MODE) */}
-        {/* This button starts the 45-min timer and hides MCQs if it's a 300L/400L course */}
+        {/* 3. FIX: Timed Mock (HAS TIMER / HAS BEGIN EXAM) */}
         <TouchableOpacity 
           style={styles.actionCard} 
-          onPress={() => router.push(`/mock/${id}?mode=exam&format=${isPOPLevel ? 'POP' : 'CBT'}` as any)}
+          onPress={() => router.push(`/mock/${id}?mode=exam&format=${isPOP ? 'POP' : 'CBT'}` as any)}
         >
           <View style={[styles.iconCircle, {backgroundColor: '#fff3e0'}]}>
-            <Text style={styles.actionIcon}>⏱️</Text>
+            <Text style={{fontSize: 24}}>⏱️</Text>
           </View>
-          <View style={styles.textContainer}>
+          <View>
             <Text style={styles.actionTitle}>Take Timed Mock Exam</Text>
-            <Text style={styles.actionSub}>
-              {isPOPLevel ? 'POP Format (Theory/Fill)' : 'CBT Format (MCQ/Fill)'}
-            </Text>
+            <Text style={{fontSize: 12, color: '#666'}}>{isPOP ? 'POP Format' : 'CBT Format'}</Text>
           </View>
         </TouchableOpacity>
 
@@ -113,43 +88,13 @@ export default function CourseDetails() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9f8' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { 
-    padding: 24, 
-    backgroundColor: NOUN_GREEN, 
-    borderBottomLeftRadius: 30, 
-    borderBottomRightRadius: 30,
-    paddingTop: 50 
-  },
-  backButton: { marginBottom: 15 },
-  backText: { color: 'white', fontSize: 16, fontWeight: '600' },
-  courseCode: { fontSize: 32, fontWeight: 'bold', color: '#FFFFFF' },
-  courseTitle: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
+  header: { padding: 25, backgroundColor: NOUN_GREEN, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, paddingTop: 50 },
+  backText: { color: 'white', fontWeight: 'bold' },
+  courseCode: { fontSize: 32, fontWeight: 'bold', color: '#fff' },
+  courseTitle: { color: '#e0e0e0', fontSize: 16 },
   content: { padding: 20 },
-  promptText: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 20 },
-  actionCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5
-  },
-  iconCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#f0f4f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15
-  },
-  textContainer: { flex: 1 },
-  actionIcon: { fontSize: 24 },
-  actionTitle: { fontSize: 17, fontWeight: 'bold', color: '#1a1a1a' },
-  actionSub: { fontSize: 13, color: '#666', marginTop: 2 }
+  promptText: { fontSize: 18, fontWeight: 'bold', marginBottom: 20 },
+  actionCard: { backgroundColor: '#fff', padding: 18, borderRadius: 20, marginBottom: 15, flexDirection: 'row', alignItems: 'center', elevation: 3 },
+  iconCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: NOUN_LIGHT_GREEN, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  actionTitle: { fontSize: 17, fontWeight: 'bold', color: '#1a1a1a' }
 });
