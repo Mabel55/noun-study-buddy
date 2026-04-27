@@ -15,10 +15,11 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────
-const BASE_URL = 'https://noun-study-buddy.onrender.com';
+const BASE_URL = 'https://noun-study-buddy-1.onrender.com';
 const EXAM_MINUTES = 45;
 
-const NOUN_GREEN = '#006600';
+// 🎨 TRUE NOUN GREEN 
+const NOUN_GREEN = '#006600'; 
 const NOUN_LIGHT_GREEN = '#e8f5e9';
 const NOUN_MID_GREEN = '#2e7d32';
 
@@ -36,28 +37,21 @@ export default function MockExamEngine() {
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(EXAM_MINUTES * 60);
   const [examStarted, setExamStarted] = useState(false);
-  
   const timerRef = useRef<any>(null);
-  
-  // 🚀 YOUR FIX: Stops the questions from multiplying on re-renders
-  const hasFetched = useRef(false);
 
+  // ─── Fetch Questions ──────────────────────────────────────────────────
   useEffect(() => {
-    if (id && !hasFetched.current) {
-      hasFetched.current = true;
-      fetchQuestions();
-    }
+    fetchQuestions();
   }, [id, format]);
 
-  // 🚀 YOUR ORIGINAL MASTER FETCH LOGIC
   const fetchQuestions = async () => {
     try {
       const cleanId = String(id).split('?')[0];
       const isPOP = format === 'POP' || String(id).includes('format=POP');
 
-      // Hit the Master Course Endpoint to get all 3 question types perfectly filtered
+      // Hit the Master Course Endpoint to get all 3 question types at once
       const response = await fetch(`${BASE_URL}/api/courses/${cleanId}/`);
-      if (!response.ok) throw new Error("Failed to fetch course data");
+      if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
 
       const cbt = (data.cbt_questions || []).map((q: any) => ({ ...q, qType: 'CBT' }));
@@ -68,7 +62,7 @@ export default function MockExamEngine() {
       if (isPOP) {
         allQuestions = [...pop, ...fill];
       } else {
-        allQuestions = [...cbt, ...fill];
+        allQuestions = [...cbt, ...fill]; 
       }
 
       setQuestions(allQuestions);
@@ -88,7 +82,7 @@ export default function MockExamEngine() {
           if (prev <= 1) {
             clearInterval(timerRef.current);
             if (Platform.OS === 'web') {
-              window.alert("Time's Up! Submitting exam automatically.");
+              window.alert("Time's Up! Submitting your exam automatically.");
             } else {
               Alert.alert("Time's Up!", "Your 45 minutes are over. Submitting exam now.");
             }
@@ -114,13 +108,14 @@ export default function MockExamEngine() {
     return '#f44336';
   };
 
-  // ─── Submit ───────────────────────────────────────────────────────────
+  // ─── Submit Logic ─────────────────────────────────────────────────────
   const confirmSubmit = () => {
     const unanswered = questions.length - Object.keys(selectedAnswers).length;
     const msg = unanswered > 0 
       ? `You have ${unanswered} unanswered question(s). Submit anyway?` 
-      : 'Are you sure you want to submit your answers?';
+      : `Are you sure you want to submit your answers?`;
 
+    // 🚀 FIXED: Allow Submit button to work on Web/Laptops!
     if (Platform.OS === 'web') {
       const confirm = window.confirm(msg);
       if (confirm) submitExam();
@@ -138,6 +133,7 @@ export default function MockExamEngine() {
     let correct = 0;
     questions.forEach((q) => {
       const userAns = (selectedAnswers[String(q.id)] || '').trim().toLowerCase();
+      // 🚀 FIXED: Finds the correct answer no matter what your Django database calls it
       const correctAns = (q.correct_answer || q.answer_text || q.fill_answer || q.answer || '').trim().toLowerCase();
       if (userAns && correctAns && userAns === correctAns) correct++;
     });
@@ -145,8 +141,8 @@ export default function MockExamEngine() {
     setSubmitted(true);
   };
 
-  // ─── Get option style ─────────────────────────────────────────────────
-  const getOptionStyle = (q: any, letter: string) => {
+  // ─── UI Styling Logic ─────────────────────────────────────────────────
+  const getOptionStyle = (q: any, letter: string): any => {
     const isSelected = selectedAnswers[String(q.id)] === letter;
     const isRevealed = revealed[String(q.id)];
     const correct = (q.correct_answer || '').toLowerCase();
@@ -159,7 +155,7 @@ export default function MockExamEngine() {
     return styles.option;
   };
 
-  const getOptionTextStyle = (q: any, letter: string) => {
+  const getOptionTextStyle = (q: any, letter: string): any => {
     const isSelected = selectedAnswers[String(q.id)] === letter;
     const isRevealed = revealed[String(q.id)];
     const correct = (q.correct_answer || '').toLowerCase();
@@ -172,7 +168,7 @@ export default function MockExamEngine() {
     return styles.optionText;
   };
 
-  // ─── UI SCREENS ──────────────────────────────────────────────────────────
+  // ─── LOADING ──────────────────────────────────────────────────────────
   if (loading) {
     return (
       <SafeAreaView style={styles.center}>
@@ -182,18 +178,20 @@ export default function MockExamEngine() {
     );
   }
 
+  // ─── ERROR ────────────────────────────────────────────────────────────
   if (error) {
     return (
       <SafeAreaView style={styles.center}>
         <Text style={styles.errorEmoji}>⚠️</Text>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.btnGreen} onPress={() => { hasFetched.current = false; fetchQuestions(); }}>
+        <TouchableOpacity style={styles.btnGreen} onPress={fetchQuestions}>
           <Text style={styles.btnText}>Retry</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
+  // ─── NO QUESTIONS ─────────────────────────────────────────────────────
   if (questions.length === 0) {
     return (
       <SafeAreaView style={styles.center}>
@@ -207,6 +205,7 @@ export default function MockExamEngine() {
     );
   }
 
+  // ─── START SCREEN (Your Beautiful UI) ───────────────────────────────
   if (!examStarted) {
     const cbtCount = questions.filter((q) => q.qType === 'CBT').length;
     const fillCount = questions.filter((q) => q.qType === 'FILL').length;
@@ -254,6 +253,7 @@ export default function MockExamEngine() {
     );
   }
 
+  // ─── RESULTS SCREEN ───────────────────────────────────────────────────
   if (submitted) {
     const percent = Math.round((score / questions.length) * 100);
     const getGrade = () => {
@@ -312,6 +312,7 @@ export default function MockExamEngine() {
     );
   }
 
+  // ─── EXAM SCREEN ──────────────────────────────────────────────────────
   const currentQ = questions[currentIndex];
   const qId = String(currentQ?.id);
   const isCBT = currentQ?.qType === 'CBT';
@@ -319,7 +320,9 @@ export default function MockExamEngine() {
   const isPOP = currentQ?.qType === 'POP';
   const isRevealed = revealed[qId];
   
+  // 🚀 FIXED: Ensures POP answers are found and displayed in the green box
   const correctAns = (currentQ?.correct_answer || currentQ?.answer_text || currentQ?.fill_answer || currentQ?.answer || '');
+  
   const answeredCount = Object.keys(selectedAnswers).length;
   const progressPercent = (answeredCount / questions.length) * 100;
 
@@ -341,7 +344,6 @@ export default function MockExamEngine() {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
         <View style={styles.questionCard}>
-
           <View style={[styles.typeBadge, isCBT && styles.typeCBT, isFill && styles.typeFill, isPOP && styles.typePOP]}>
             <Text style={styles.typeBadgeText}>
               {isCBT ? 'Multiple Choice' : isFill ? 'Fill in the Gap' : 'Theory Question'}
@@ -366,16 +368,18 @@ export default function MockExamEngine() {
                 <View style={[
                   styles.optionLetterBox,
                   selectedAnswers[qId] === letter && styles.optionLetterBoxActive,
-                  isRevealed && letter === (currentQ.correct_answer || '').toLowerCase() && styles.optionLetterBoxCorrect,
+                  isRevealed && letter === correctAns.toLowerCase() && styles.optionLetterBoxCorrect,
                 ]}>
                   <Text style={[
                     styles.optionLetter,
-                    (selectedAnswers[qId] === letter || (isRevealed && letter === (currentQ.correct_answer || '').toLowerCase())) && { color: '#fff' },
+                    (selectedAnswers[qId] === letter || (isRevealed && letter === correctAns.toLowerCase())) && { color: '#fff' },
                   ]}>
                     {letter.toUpperCase()}
                   </Text>
                 </View>
-                <Text style={getOptionTextStyle(currentQ, letter)}>{optionText}</Text>
+                <Text style={getOptionTextStyle(currentQ, letter)}>
+                  {optionText}
+                </Text>
               </TouchableOpacity>
             );
           })}
@@ -394,7 +398,7 @@ export default function MockExamEngine() {
           {isPOP && (
             <TextInput
               style={[styles.popInput, isRevealed && styles.fillInputDisabled]}
-              placeholder="Write your answer here..."
+              placeholder="Write your theory answer here..."
               placeholderTextColor="#aaa"
               multiline
               numberOfLines={6}
@@ -413,9 +417,9 @@ export default function MockExamEngine() {
             <View style={styles.answerBox}>
               <Text style={styles.answerBoxLabel}>✅ Correct Answer:</Text>
               <Text style={styles.answerBoxText}>
-                {isCBT && correctAns
+                {isCBT
                   ? `${(correctAns).toUpperCase().replace('OPTION ', '')}. ${currentQ[`option_${correctAns.toLowerCase().replace('option ', '')}`] || correctAns}`
-                  : correctAns || 'Answer not provided in database.'}
+                  : correctAns || 'No answer uploaded in database yet.'}
               </Text>
             </View>
           )}
@@ -531,5 +535,5 @@ const styles = StyleSheet.create({
   btnGreen: { width: '100%', backgroundColor: NOUN_GREEN, borderRadius: 14, paddingVertical: 16, alignItems: 'center', shadowColor: NOUN_GREEN, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6, elevation: 4 },
   btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   btnOutline: { width: '100%', backgroundColor: '#fff', borderRadius: 14, paddingVertical: 16, alignItems: 'center', borderWidth: 2, borderColor: NOUN_GREEN },
-  btnOutlineText: { color: NOUN_GREEN, fontSize: 16, fontWeight: '700' }
+  btnOutlineText: { color: NOUN_GREEN, fontSize: 16, fontWeight: '700' },
 });
