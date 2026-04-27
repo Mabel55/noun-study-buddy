@@ -52,7 +52,8 @@ export default function CourseDetails() {
           <View><Text style={styles.actionTitle}>Read Summary</Text></View>
         </TouchableOpacity>
 
-        {/* 2. FIX: Questions and Answers (NO TIMER / NO BEGIN EXAM) */}
+        {/* 🟢 THE FIX FOR QUESTIONS & ANSWERS: 
+            We do NOT send a format here so it shows BOTH MCQ and Theory! */}
         <TouchableOpacity 
           style={styles.actionCard} 
           onPress={() => router.push(`/mock/${id}?mode=study` as any)}
@@ -62,11 +63,12 @@ export default function CourseDetails() {
           </View>
           <View>
             <Text style={styles.actionTitle}>Questions and Answers</Text>
-            <Text style={{fontSize: 12, color: '#666'}}>Study Mode • Answers revealed</Text>
+            <Text style={{fontSize: 12, color: '#666'}}>Study Mode • All types shown</Text>
           </View>
         </TouchableOpacity>
 
-        {/* 3. FIX: Timed Mock (HAS TIMER / HAS BEGIN EXAM) */}
+        {/* 🔴 THE TIMED MOCK: 
+            This keeps the strict format (POP or CBT) and the timer! */}
         <TouchableOpacity 
           style={styles.actionCard} 
           onPress={() => router.push(`/mock/${id}?mode=exam&format=${isPOP ? 'POP' : 'CBT'}` as any)}
