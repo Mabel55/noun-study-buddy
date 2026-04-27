@@ -48,21 +48,41 @@ export default function MockExamEngine() {
     try {
       const cleanId = String(id).split('?')[0];
       const isPOP = format === 'POP' || String(id).includes('format=POP');
+      
+      let allQuestions: any[] = [];
 
-      // Hit the Master Course Endpoint to get all 3 question types at once
-      const response = await fetch(`${BASE_URL}/api/courses/${cleanId}/`);
-      if (!response.ok) throw new Error("Failed to fetch");
-      const data = await response.json();
-
-      const cbt = (data.cbt_questions || []).map((q: any) => ({ ...q, qType: 'CBT' }));
-      const pop = (data.pop_questions || []).map((q: any) => ({ ...q, qType: 'POP' }));
-      const fill = (data.fill_questions || []).map((q: any) => ({ ...q, qType: 'FILL' }));
-
-      let allQuestions = [];
       if (isPOP) {
-        allQuestions = [...pop, ...fill];
+        // 1. Fetch POP Theory Questions
+        const popRes = await fetch(`${BASE_URL}/api/courses/${cleanId}/pop-questions/`);
+        if (popRes.ok) {
+          const popData = await popRes.json();
+          const popQ = Array.isArray(popData) ? popData.map((q: any) => ({ ...q, qType: 'POP' })) : [];
+          allQuestions = [...allQuestions, ...popQ];
+        }
+
+        // 2. Fetch Fill-in-the-gap Questions
+        const fillRes = await fetch(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`);
+        if (fillRes.ok) {
+          const fillData = await fillRes.json();
+          const fillQ = Array.isArray(fillData) ? fillData.map((q: any) => ({ ...q, qType: 'FILL' })) : [];
+          allQuestions = [...allQuestions, ...fillQ];
+        }
       } else {
-        allQuestions = [...cbt, ...fill]; 
+        // 3. 🚀 FIXED: Fetch Multiple Choice from its dedicated Django endpoint!
+        const mcqRes = await fetch(`${BASE_URL}/api/questions/?course_id=${cleanId}`);
+        if (mcqRes.ok) {
+          const mcqData = await mcqRes.json();
+          const mcqQ = Array.isArray(mcqData) ? mcqData.map((q: any) => ({ ...q, qType: 'CBT' })) : [];
+          allQuestions = [...allQuestions, ...mcqQ];
+        }
+
+        // 4. Fetch Fill-in-the-gap for CBT
+        const fillRes = await fetch(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`);
+        if (fillRes.ok) {
+          const fillData = await fillRes.json();
+          const fillQ = Array.isArray(fillData) ? fillData.map((q: any) => ({ ...q, qType: 'FILL' })) : [];
+          allQuestions = [...allQuestions, ...fillQ];
+        }
       }
 
       setQuestions(allQuestions);
