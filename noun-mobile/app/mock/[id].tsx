@@ -15,7 +15,6 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────
-// Must NOT have the -1! This points straight to your healthy backend.
 const BASE_URL = 'https://noun-study-buddy.onrender.com';
 const EXAM_MINUTES = 45;
 
@@ -40,7 +39,7 @@ export default function MockExamEngine() {
   
   const timerRef = useRef<any>(null);
   
-  // 🚀 YOUR FIX: Stops the questions from multiplying on re-renders!
+  // 🚀 YOUR FIX: Stops the questions from multiplying on re-renders
   const hasFetched = useRef(false);
 
   useEffect(() => {
@@ -50,56 +49,27 @@ export default function MockExamEngine() {
     }
   }, [id, format]);
 
-  // 🚀 YOUR ORIGINAL LOGIC + THE MAGIC FILTER
+  // 🚀 THE PERFECT, ORIGINAL FETCH LOGIC
   const fetchQuestions = async () => {
     try {
       const cleanId = String(id).split('?')[0];
       const isPOP = format === 'POP' || String(id).includes('format=POP');
-      let allQuestions: any[] = [];
 
-      // 🛡️ THE MAGIC FILTER: Slices the 168 questions down to just this course
-      const filterByCourse = (list: any[]) => {
-        return list.filter((q: any) => {
-          const cVal = String(q.course?.id || q.course || q.course_id || '');
-          return cVal === String(cleanId) || cVal.includes(`/courses/${cleanId}/`);
-        });
-      };
+      // Hit the Master Course Endpoint! Django does all the filtering for us!
+      const response = await fetch(`${BASE_URL}/api/courses/${cleanId}/`);
+      if (!response.ok) throw new Error("Failed to fetch course data");
+      const data = await response.json();
 
+      // Safely map the exact questions Django gives us
+      const cbt = (data.cbt_questions || []).map((q: any) => ({ ...q, qType: 'CBT' }));
+      const pop = (data.pop_questions || []).map((q: any) => ({ ...q, qType: 'POP' }));
+      const fill = (data.fill_questions || []).map((q: any) => ({ ...q, qType: 'FILL' }));
+
+      let allQuestions = [];
       if (isPOP) {
-        // Fetch POP theory questions (No filter needed here because the URL is strictly for this course!)
-        const popRes = await fetch(`${BASE_URL}/api/courses/${cleanId}/pop-questions/`);
-        if (popRes.ok) {
-          const popData = await popRes.json();
-          let popQ = Array.isArray(popData) ? popData : [];
-          allQuestions = [...allQuestions, ...popQ.map((q: any) => ({ ...q, qType: 'POP' }))];
-        }
-
-        // Fetch fill-in-gap
-        const fillRes = await fetch(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`);
-        if (fillRes.ok) {
-          const fillData = await fillRes.json();
-          let fillQ = Array.isArray(fillData) ? fillData : [];
-          fillQ = filterByCourse(fillQ); // Apply filter
-          allQuestions = [...allQuestions, ...fillQ.map((q: any) => ({ ...q, qType: 'FILL' }))];
-        }
+        allQuestions = [...pop, ...fill];
       } else {
-        // Fetch MCQ questions
-        const mcqRes = await fetch(`${BASE_URL}/api/questions/?course_id=${cleanId}`);
-        if (mcqRes.ok) {
-          const mcqData = await mcqRes.json();
-          let mcqQ = Array.isArray(mcqData) ? mcqData : [];
-          mcqQ = filterByCourse(mcqQ); // Apply filter to stop the 168 bug!
-          allQuestions = [...allQuestions, ...mcqQ.map((q: any) => ({ ...q, qType: 'CBT' }))];
-        }
-
-        // Fetch fill-in-gap for CBT
-        const fillRes = await fetch(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`);
-        if (fillRes.ok) {
-          const fillData = await fillRes.json();
-          let fillQ = Array.isArray(fillData) ? fillData : [];
-          fillQ = filterByCourse(fillQ); // Apply filter
-          allQuestions = [...allQuestions, ...fillQ.map((q: any) => ({ ...q, qType: 'FILL' }))];
-        }
+        allQuestions = [...cbt, ...fill];
       }
 
       setQuestions(allQuestions);
