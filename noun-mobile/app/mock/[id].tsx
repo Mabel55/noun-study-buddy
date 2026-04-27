@@ -48,43 +48,51 @@ export default function MockExamEngine() {
     try {
       const cleanId = String(id).split('?')[0];
       const isPOP = format === 'POP' || String(id).includes('format=POP');
-      let allQuestions = [];
+      let allQuestions: any[] = [];
 
-      // 🛡️ THE BULLETPROOF HELPER: This will NEVER crash, no matter what Django sends.
-      const fetchAndFilter = async (url, type) => {
+      // 🛡️ THE BULLETPROOF HELPER: Prevents HTML crashes and filters the 168-question bug
+      const fetchSafe = async (url: string, type: string) => {
         try {
           const res = await fetch(url);
-          if (!res.ok) return [];
-          const data = await res.json();
           
-          // Safely handle both flat arrays AND paginated Django responses
+          // If the URL is wrong or server rejects it, silently skip instead of crashing
+          if (!res.ok) return [];
+          
+          // CRITICAL FIX: If Django sends a 404 HTML page, this stops the JSON parser crash!
+          const contentType = res.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) return [];
+
+          const data = await res.json();
           let rawList = Array.isArray(data) ? data : (data.results || []);
           if (!Array.isArray(rawList)) return [];
 
-          // Safely filter out bad items without crashing
-          const filteredList = rawList.filter(q => {
-            if (!q || typeof q !== 'object') return false;
-            // Checks both naming styles just in case
-            const cId = String(q.course || q.course_id || '');
-            return cId === cleanId;
-          });
+          return rawList
+            .filter((q: any) => {
+              if (!q || typeof q !== 'object') return false;
+              
+              // If there's no course attached to the object, assume it belongs to the endpoint
+              if (!q.course && !q.course_id) return true;
 
-          // Tag it so the UI knows to show the A/B/C/D buttons or Text Box
-          return filteredList.map(q => ({ ...q, qType: type }));
+              // Safely handle if Django sends the course as an integer (13) OR a dictionary ({id: 13, name: "CIT104"})
+              const courseIdValue = q.course?.id || q.course || q.course_id;
+              return String(courseIdValue) === String(cleanId);
+            })
+            .map((q: any) => ({ ...q, qType: type }));
         } catch (e) {
-          console.error(`Error filtering ${type}:`, e);
-          return []; // Returns empty instead of crashing the whole app
+          console.error(`Error parsing ${type} from ${url}:`, e);
+          return [];
         }
       };
 
-      // 🚀 Fetch the exact data based on what the student clicked
+      // 🚀 The EXACT Endpoints from your original working code
       if (isPOP) {
-        const popQ = await fetchAndFilter(`${BASE_URL}/api/pop-questions/?course_id=${cleanId}`, 'POP');
-        const fillQ = await fetchAndFilter(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL');
+        // Notice the correct, specific endpoint for POP!
+        const popQ = await fetchSafe(`${BASE_URL}/api/courses/${cleanId}/pop-questions/`, 'POP');
+        const fillQ = await fetchSafe(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL');
         allQuestions = [...popQ, ...fillQ];
       } else {
-        const mcqQ = await fetchAndFilter(`${BASE_URL}/api/questions/?course_id=${cleanId}`, 'CBT');
-        const fillQ = await fetchAndFilter(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL');
+        const mcqQ = await fetchSafe(`${BASE_URL}/api/questions/?course_id=${cleanId}`, 'CBT');
+        const fillQ = await fetchSafe(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL');
         allQuestions = [...mcqQ, ...fillQ];
       }
 
