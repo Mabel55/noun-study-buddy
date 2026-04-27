@@ -40,7 +40,7 @@ export default function CourseDetails() {
     );
   }
 
-  // 🚀 NOUN LEVEL LOGIC
+  // 🚀 NOUN LEVEL LOGIC: Checks if it's a 100L/200L course (CBT) or 300L/400L course (POP)
   const courseCode = courseData?.code || '';
   const firstDigitMatch = courseCode.match(/\d/); 
   const isPOPLevel = firstDigitMatch && parseInt(firstDigitMatch[0], 10) >= 3;
@@ -67,14 +67,14 @@ export default function CourseDetails() {
           onPress={() => router.push(`/summary/${id}` as any)}
         >
           <View style={styles.iconCircle}><Text style={styles.actionIcon}>📖</Text></View>
-          <View>
+          <View style={styles.textContainer}>
             <Text style={styles.actionTitle}>Read Course Summary</Text>
             <Text style={styles.actionSub}>Quick notes and key points</Text>
           </View>
         </TouchableOpacity>
 
         {/* 2. QUESTIONS & ANSWERS (STUDY MODE) */}
-        {/* This mode has NO timer and shows all multiple choice options */}
+        {/* This button forces the engine to show NO timer and reveal all MCQs */}
         <TouchableOpacity 
           style={styles.actionCard} 
           onPress={() => router.push(`/mock/${id}?mode=study` as any)}
@@ -82,14 +82,14 @@ export default function CourseDetails() {
           <View style={[styles.iconCircle, {backgroundColor: '#e3f2fd'}]}>
             <Text style={styles.actionIcon}>💡</Text>
           </View>
-          <View>
+          <View style={styles.textContainer}>
             <Text style={styles.actionTitle}>Questions and Answers</Text>
             <Text style={styles.actionSub}>Study mode • No timer</Text>
           </View>
         </TouchableOpacity>
 
         {/* 3. TIMED MOCK EXAM (EXAM MODE) */}
-        {/* This mode HAS a timer and follows NOUN level rules */}
+        {/* This button starts the 45-min timer and hides MCQs if it's a 300L/400L course */}
         <TouchableOpacity 
           style={styles.actionCard} 
           onPress={() => router.push(`/mock/${id}?mode=exam&format=${isPOPLevel ? 'POP' : 'CBT'}` as any)}
@@ -97,7 +97,7 @@ export default function CourseDetails() {
           <View style={[styles.iconCircle, {backgroundColor: '#fff3e0'}]}>
             <Text style={styles.actionIcon}>⏱️</Text>
           </View>
-          <View>
+          <View style={styles.textContainer}>
             <Text style={styles.actionTitle}>Take Timed Mock Exam</Text>
             <Text style={styles.actionSub}>
               {isPOPLevel ? 'POP Format (Theory/Fill)' : 'CBT Format (MCQ/Fill)'}
@@ -148,6 +148,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 15
   },
+  textContainer: { flex: 1 },
   actionIcon: { fontSize: 24 },
   actionTitle: { fontSize: 17, fontWeight: 'bold', color: '#1a1a1a' },
   actionSub: { fontSize: 13, color: '#666', marginTop: 2 }

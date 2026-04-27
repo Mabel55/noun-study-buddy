@@ -1,283 +1,569 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  SafeAreaView,
-  ScrollView,
-  TextInput,
-  Alert,
-  StatusBar,
-  Platform
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
+  TextInput,
+  Alert,
+  StatusBar,
+  Platform
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────
 const BASE_URL = 'https://noun-study-buddy.onrender.com';
 const EXAM_MINUTES = 45;
+
 const NOUN_GREEN = '#006600';
 const NOUN_LIGHT_GREEN = '#e8f5e9';
 const NOUN_MID_GREEN = '#2e7d32';
 
 export default function MockExamEngine() {
-  const { id, format, mode } = useLocalSearchParams(); 
-  const router = useRouter();
+  const { id, format } = useLocalSearchParams();
+  const router = useRouter();
 
-  // 🛡️ THE SAFETY SWITCH
-  const isStudyMode = mode === 'study';
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [score, setScore] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(EXAM_MINUTES * 60);
+  const [examStarted, setExamStarted] = useState(false);
+  
+  const timerRef = useRef<any>(null);
+  
+  // 🚀 YOUR FIX: Stops the questions from multiplying
+  const hasFetched = useRef(false);
 
-  const [questions, setQuestions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
-  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
-  const [submitted, setSubmitted] = useState(false);
-  const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(EXAM_MINUTES * 60);
-  
-  // Study mode skips the "Begin" screen
-  const [examStarted, setExamStarted] = useState(isStudyMode);
-  
-  const timerRef = useRef<any>(null);
-  const hasFetched = useRef(false);
+  useEffect(() => {
+    if (id && !hasFetched.current) {
+      hasFetched.current = true;
+      fetchQuestions();
+    }
+  }, [id, format]);
 
-  useEffect(() => {
-    if (id && !hasFetched.current) {
-      hasFetched.current = true;
-      fetchQuestions();
-    }
-  }, [id, format]);
+  // 🚀 THE ULTIMATE HYBRID FETCHER
+  const fetchQuestions = async () => {
+    try {
+      const cleanId = String(id).split('?')[0];
+      const isPOP = format === 'POP' || String(id).includes('format=POP');
 
-  const fetchQuestions = async () => {
-    try {
-      const cleanId = String(id).split('?')[0];
+      // 1. Get the Master Course Data
+      // This gives us the full objects for POP and FILL, but only the ID numbers for CBT.
+      const courseRes = await fetch(`${BASE_URL}/api/courses/${cleanId}/`);
+      if (!courseRes.ok) throw new Error("Failed to fetch course data");
+      const courseData = await courseRes.json();
 
-      const fetchSafe = async (url: string, type: string) => {
-        try {
-          const res = await fetch(url);
-          if (!res.ok) return []; 
-          const data = await res.json();
-          const list = Array.isArray(data) ? data : (data.results || []);
-          return list.filter((q: any) => {
-            const cVal = String(q.course?.id || q.course || q.course_id || '');
-            return cVal === String(cleanId) || cVal.includes(`/courses/${cleanId}/`);
-          }).map((q: any) => ({ ...q, qType: type }));
-        } catch (e) { return []; }
-      };
+      // Extract POP and FILL (Django sends their full text here, so they are ready to use)
+      const popQ = (courseData.pop_questions || []).map((q: any) => ({ ...q, qType: 'POP' }));
+      const fillQ = (courseData.fill_questions || []).map((q: any) => ({ ...q, qType: 'FILL' }));
 
-      // Fetch all three types to prevent "missing" questions
-      const fillQ = await fetchSafe(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL');
-      const popQ = await fetchSafe(`${BASE_URL}/api/pop-questions/?course_id=${cleanId}`, 'POP');
-      const cbtQ = await fetchSafe(`${BASE_URL}/api/questions/?course_id=${cleanId}`, 'CBT');
+      let allQuestions: any[] = [];
 
-      let combined = [];
-      if (isStudyMode) {
-        combined = [...cbtQ, ...fillQ, ...popQ]; // Show everything in Q&A
-      } else {
-        combined = format === 'POP' ? [...popQ, ...fillQ] : [...cbtQ, ...fillQ];
-      }
+      if (isPOP) {
+        allQuestions = [...popQ, ...fillQ];
+      } else {
+        // 2. Extract the exact 49 CBT ID numbers from the course
+        const validCbtIds = (courseData.cbt_questions || []).map((q: any) => String(typeof q === 'object' ? q.id : q));
 
-      setQuestions(combined);
-      setLoading(false);
-    } catch (err) {
-      setError('Failed to load questions.');
-      setLoading(false);
-    }
-  };
+        let cbtQ: any[] = [];
+        
+        // Quick check: If Django actually sent the A/B/C/D options directly, use them!
+        const hasOptions = courseData.cbt_questions?.some((q: any) => typeof q === 'object' && (q.option_a || q.option_A));
+        
+        if (hasOptions) {
+          cbtQ = courseData.cbt_questions;
+        } else {
+          try {
+            // 3. Fetch the full A/B/C/D text from the questions endpoint
+            const mcqRes = await fetch(`${BASE_URL}/api/questions/?course_id=${cleanId}`);
+            if (mcqRes.ok) {
+              const mcqData = await mcqRes.json();
+              const rawMcq = Array.isArray(mcqData) ? mcqData : (mcqData.results || []);
 
-  useEffect(() => {
-    if (examStarted && !submitted && !isStudyMode) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current);
-            submitExam();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [examStarted, submitted, isStudyMode]);
+              // 4. THE MAGIC FILTER: Keep only the questions whose ID is on the valid list!
+              if (validCbtIds.length > 0) {
+                cbtQ = rawMcq.filter((q: any) => validCbtIds.includes(String(q.id)));
+              } else {
+                // Fallback just in case
+                cbtQ = rawMcq.filter((q: any) => String(q.course) === cleanId || String(q.course_id) === cleanId);
+              }
+            }
+          } catch (e) {
+            console.log("Error fetching CBT details", e);
+          }
+        }
 
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60).toString().padStart(2, '0');
-    const s = (secs % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
+        cbtQ = cbtQ.map((q: any) => ({ ...q, qType: 'CBT' }));
+        allQuestions = [...cbtQ, ...fillQ];
+      }
 
-  const submitExam = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    let correct = 0;
-    questions.forEach((q) => {
-      const userAns = (selectedAnswers[String(q.id)] || '').trim().toLowerCase();
-      const correctAns = (q.correct_answer || q.fill_answer || '').trim().toLowerCase();
-      if (userAns && correctAns && userAns === correctAns) correct++;
-    });
-    setScore(correct);
-    setSubmitted(true);
-  };
+      setQuestions(allQuestions);
+      setLoading(false);
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setError('Failed to load questions. Check your connection.');
+      setLoading(false);
+    }
+  };
 
-  if (loading) return <SafeAreaView style={styles.center}><ActivityIndicator size="large" color={NOUN_GREEN} /></SafeAreaView>;
+  // ─── Timer ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (examStarted && !submitted) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current);
+            if (Platform.OS === 'web') {
+              window.alert("Time's Up! Submitting exam automatically.");
+            } else {
+              Alert.alert("Time's Up!", "Your 45 minutes are over. Submitting exam now.");
+            }
+            submitExam();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [examStarted, submitted]);
 
-  // Start Screen
-  if (!examStarted) {
-    return (
-      <SafeAreaView style={styles.startContainer}>
-        <ScrollView contentContainerStyle={styles.startBody}>
-          <View style={styles.startIconBox}><Text style={{ fontSize: 60 }}>📝</Text></View>
-          <Text style={styles.startTitle}>Timed Mock Exam</Text>
-          <Text style={styles.startSubtitle}>45 Minutes | {questions.length} Questions</Text>
-          <View style={styles.rulesCard}>
-             <Text style={styles.rulesTitle}>📋 Instructions</Text>
-             <Text style={styles.ruleItem}>• Select answers and submit before time runs out.</Text>
-             <Text style={styles.ruleItem}>• Reveal Answer is disabled until you finish.</Text>
-          </View>
-          <TouchableOpacity style={styles.startBtn} onPress={() => setExamStarted(true)}>
-            <Text style={styles.startBtnText}>Begin Exam 🚀</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, '0');
+    const s = (secs % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
-  // Result Screen
-  if (submitted) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.gradeCard}>
-          <Text style={styles.gradeLetter}>{Math.round((score/questions.length)*100)}%</Text>
-          <Text style={styles.gradeScore}>You got {score} out of {questions.length}</Text>
-          <TouchableOpacity style={styles.btnGreen} onPress={() => router.back()}>
-            <Text style={styles.btnText}>🏠 Back to Course</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const getTimerColor = () => {
+    if (timeLeft > 600) return '#4caf50';
+    if (timeLeft > 300) return '#ff9800';
+    return '#f44336';
+  };
 
-  const currentQ = questions[currentIndex];
-  const qId = String(currentQ?.id);
-  const isCBT = currentQ?.qType === 'CBT';
-  const isRevealed = revealed[qId] || isStudyMode;
-  const correctAns = (currentQ?.correct_answer || currentQ?.answer_text || currentQ?.fill_answer || '');
+  // ─── Submit ───────────────────────────────────────────────────────────
+  const confirmSubmit = () => {
+    const unanswered = questions.length - Object.keys(selectedAnswers).length;
+    const msg = unanswered > 0 
+      ? `You have ${unanswered} unanswered question(s). Submit anyway?` 
+      : 'Are you sure you want to submit your answers?';
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={NOUN_GREEN} />
-      <View style={styles.examHeader}>
-        <View>
-          <Text style={styles.examQNum}>Question {currentIndex + 1}/{questions.length}</Text>
-          <View style={styles.progressBarBg}><View style={[styles.progressBarFill, { width: `${((currentIndex+1)/questions.length)*100}%` }]} /></View>
-        </View>
-        {!isStudyMode && (
-          <View style={styles.timerPill}><Text style={styles.timerText}>⏱️ {formatTime(timeLeft)}</Text></View>
-        )}
-      </View>
+    if (Platform.OS === 'web') {
+      const confirm = window.confirm(msg);
+      if (confirm) submitExam();
+      return;
+    }
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.questionCard}>
-          <Text style={styles.questionText}>{currentQ?.question_text || currentQ?.text}</Text>
+    Alert.alert('Submit Exam?', msg, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Submit', style: 'destructive', onPress: submitExam },
+    ]);
+  };
 
-          {isCBT && ['a', 'b', 'c', 'd'].map((letter) => (
-            <TouchableOpacity
-              key={letter}
-              style={[
-                styles.option,
-                selectedAnswers[qId] === letter && styles.optionSelected,
-                isStudyMode && letter === (currentQ.correct_answer || '').toLowerCase() && styles.optionCorrect
-              ]}
-              onPress={() => !isRevealed && setSelectedAnswers({ ...selectedAnswers, [qId]: letter })}
-              disabled={isRevealed && !isStudyMode}
-            >
-              <View style={[styles.optionLetterBox, selectedAnswers[qId] === letter && {backgroundColor: NOUN_GREEN}]}>
-                <Text style={{color: selectedAnswers[qId] === letter ? '#fff' : '#333'}}>{letter.toUpperCase()}</Text>
-              </View>
-              <Text style={{flex:1}}>{currentQ[`option_${letter}`]}</Text>
-            </TouchableOpacity>
-          ))}
+  const submitExam = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    let correct = 0;
+    questions.forEach((q) => {
+      const userAns = (selectedAnswers[String(q.id)] || '').trim().toLowerCase();
+      const correctAns = (q.correct_answer || q.answer_text || q.fill_answer || q.answer || '').trim().toLowerCase();
+      if (userAns && correctAns && userAns === correctAns) correct++;
+    });
+    setScore(correct);
+    setSubmitted(true);
+  };
 
-          {!isCBT && (
-            <TextInput
-              style={styles.popInput}
-              multiline
-              placeholder="Type your answer here..."
-              value={selectedAnswers[qId] || ''}
-              onChangeText={(text) => setSelectedAnswers({ ...selectedAnswers, [qId]: text })}
-            />
-          )}
+  // ─── Get option style ─────────────────────────────────────────────────
+  const getOptionStyle = (q: any, letter: string) => {
+    const isSelected = selectedAnswers[String(q.id)] === letter;
+    const isRevealed = revealed[String(q.id)];
+    const correct = (q.correct_answer || '').toLowerCase();
 
-          {isRevealed && (
-            <View style={styles.answerBox}>
-              <Text style={styles.answerBoxLabel}>✅ Correct Answer:</Text>
-              <Text style={styles.answerBoxText}>{correctAns}</Text>
-            </View>
-          )}
+    if (isRevealed) {
+      if (letter === correct) return [styles.option, styles.optionCorrect];
+      if (isSelected && letter !== correct) return [styles.option, styles.optionWrong];
+    }
+    if (isSelected) return [styles.option, styles.optionSelected];
+    return styles.option;
+  };
 
-          {!isStudyMode && !isRevealed && (
-            <TouchableOpacity style={styles.revealBtn} onPress={() => setRevealed({...revealed, [qId]: true})}>
-              <Text style={styles.revealBtnText}>💡 Reveal Answer</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </ScrollView>
+  const getOptionTextStyle = (q: any, letter: string) => {
+    const isSelected = selectedAnswers[String(q.id)] === letter;
+    const isRevealed = revealed[String(q.id)];
+    const correct = (q.correct_answer || '').toLowerCase();
 
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.navBtn} onPress={() => setCurrentIndex(c => Math.max(0, c - 1))}><Text style={styles.navBtnText}>← Prev</Text></TouchableOpacity>
-        {currentIndex === questions.length - 1 ? (
-          <TouchableOpacity style={styles.submitBtn} onPress={submitExam}><Text style={styles.submitBtnText}>Finish</Text></TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.navBtn} onPress={() => setCurrentIndex(c => Math.min(questions.length - 1, c + 1))}><Text style={styles.navBtnText}>Next →</Text></TouchableOpacity>
-        )}
-      </View>
-    </SafeAreaView>
-  );
+    if (isRevealed) {
+      if (letter === correct) return styles.optionTextCorrect;
+      if (isSelected && letter !== correct) return styles.optionTextWrong;
+    }
+    if (isSelected) return styles.optionTextSelected;
+    return styles.optionText;
+  };
+
+  // ─── SCREENS ──────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.center}>
+        <ActivityIndicator size="large" color={NOUN_GREEN} />
+        <Text style={styles.loadingText}>Loading exam...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.center}>
+        <Text style={styles.errorEmoji}>⚠️</Text>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.btnGreen} onPress={() => { hasFetched.current = false; fetchQuestions(); }}>
+          <Text style={styles.btnText}>Retry</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <SafeAreaView style={styles.center}>
+        <Text style={{ fontSize: 50, marginBottom: 15 }}>📭</Text>
+        <Text style={styles.emptyTitle}>No Questions Yet</Text>
+        <Text style={styles.emptySubtitle}>Questions for this course are being generated. Check back soon!</Text>
+        <TouchableOpacity style={styles.btnGreen} onPress={() => router.back()}>
+          <Text style={styles.btnText}>Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  if (!examStarted) {
+    const cbtCount = questions.filter((q) => q.qType === 'CBT').length;
+    const fillCount = questions.filter((q) => q.qType === 'FILL').length;
+    const popCount = questions.filter((q) => q.qType === 'POP').length;
+
+    return (
+      <SafeAreaView style={styles.startContainer}>
+        <StatusBar barStyle="light-content" backgroundColor={NOUN_GREEN} />
+        <View style={styles.startHeader}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backIcon}>
+            <Text style={{ color: '#fff', fontSize: 18 }}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.startHeaderTitle}>Mock Exam</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        <ScrollView contentContainerStyle={styles.startBody}>
+          <View style={styles.startIconBox}><Text style={{ fontSize: 60 }}>📝</Text></View>
+          <Text style={styles.startTitle}>NOUN CBT Practice</Text>
+          <Text style={styles.startSubtitle}>{format === 'POP' ? 'POP (Pen-On-Paper) Exam' : 'CBT (Computer-Based Test)'}</Text>
+
+          <View style={styles.statsRow}>
+            {cbtCount > 0 && <View style={styles.statCard}><Text style={styles.statNum}>{cbtCount}</Text><Text style={styles.statLabel}>MCQ</Text></View>}
+            {fillCount > 0 && <View style={styles.statCard}><Text style={styles.statNum}>{fillCount}</Text><Text style={styles.statLabel}>Fill Gap</Text></View>}
+            {popCount > 0 && <View style={styles.statCard}><Text style={styles.statNum}>{popCount}</Text><Text style={styles.statLabel}>Theory</Text></View>}
+            <View style={styles.statCard}><Text style={styles.statNum}>{EXAM_MINUTES}</Text><Text style={styles.statLabel}>Minutes</Text></View>
+          </View>
+
+          <View style={styles.rulesCard}>
+            <Text style={styles.rulesTitle}>📋 Instructions</Text>
+            {[
+              'Select one answer per MCQ question',
+              'Type your answer for fill-in-gap questions',
+              'Use "Reveal Answer" to check the correct answer',
+              'Timer starts when you tap Begin',
+              'Exam auto-submits when time runs out',
+            ].map((rule, i) => <Text key={i} style={styles.ruleItem}>• {rule}</Text>)}
+          </View>
+
+          <TouchableOpacity style={styles.startBtn} onPress={() => setExamStarted(true)} activeOpacity={0.85}>
+            <Text style={styles.startBtnText}>Begin Exam 🚀</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  if (submitted) {
+    const percent = Math.round((score / questions.length) * 100);
+    const getGrade = () => {
+      if (percent >= 70) return { g: 'A', msg: 'Excellent! 🎉', color: '#2e7d32' };
+      if (percent >= 60) return { g: 'B', msg: 'Good Job! 👍', color: '#1565c0' };
+      if (percent >= 50) return { g: 'C', msg: 'You Passed! 📚', color: '#e65100' };
+      if (percent >= 45) return { g: 'D', msg: 'Just Passed 📖', color: '#bf360c' };
+      return { g: 'F', msg: "Don't Give Up! 💪", color: '#b71c1c' };
+    };
+    const { g, msg, color } = getGrade();
+
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={NOUN_GREEN} />
+        <View style={styles.resultsHeader}>
+          <Text style={styles.resultsHeaderTitle}>Exam Results</Text>
+        </View>
+        <ScrollView contentContainerStyle={styles.resultsBody}>
+          <View style={styles.gradeCard}>
+            <Text style={[styles.gradeLetter, { color }]}>{g}</Text>
+            <Text style={styles.gradeScore}>{score}/{questions.length}</Text>
+            <Text style={styles.gradePercent}>{percent}%</Text>
+            <Text style={[styles.gradeMsg, { color }]}>{msg}</Text>
+          </View>
+
+          <View style={styles.resultStatsRow}>
+            <View style={[styles.resultStat, { borderColor: '#4caf50' }]}>
+              <Text style={[styles.resultStatNum, { color: '#2e7d32' }]}>{score}</Text>
+              <Text style={styles.resultStatLabel}>Correct ✅</Text>
+            </View>
+            <View style={[styles.resultStat, { borderColor: '#f44336' }]}>
+              <Text style={[styles.resultStatNum, { color: '#c62828' }]}>{questions.length - score}</Text>
+              <Text style={styles.resultStatLabel}>Wrong ❌</Text>
+            </View>
+            <View style={[styles.resultStat, { borderColor: '#9e9e9e' }]}>
+              <Text style={[styles.resultStatNum, { color: '#424242' }]}>{questions.length - Object.keys(selectedAnswers).length}</Text>
+              <Text style={styles.resultStatLabel}>Skipped ⏭️</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.btnGreen}
+            onPress={() => {
+              setSubmitted(false); setSelectedAnswers({}); setRevealed({});
+              setScore(0); setCurrentIndex(0); setTimeLeft(EXAM_MINUTES * 60); setExamStarted(false);
+            }}
+          >
+            <Text style={styles.btnText}>🔄 Retake Exam</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.btnOutline, { marginTop: 12 }]} onPress={() => router.back()}>
+            <Text style={styles.btnOutlineText}>🏠 Back to Course</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  const currentQ = questions[currentIndex];
+  const qId = String(currentQ?.id);
+  const isCBT = currentQ?.qType === 'CBT';
+  const isFill = currentQ?.qType === 'FILL';
+  const isPOP = currentQ?.qType === 'POP';
+  const isRevealed = revealed[qId];
+  
+  const correctAns = (currentQ?.correct_answer || currentQ?.answer_text || currentQ?.fill_answer || currentQ?.answer || '');
+  const answeredCount = Object.keys(selectedAnswers).length;
+  const progressPercent = (answeredCount / questions.length) * 100;
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={NOUN_GREEN} />
+
+      <View style={styles.examHeader}>
+        <View>
+          <Text style={styles.examQNum}>Question {currentIndex + 1}/{questions.length}</Text>
+          <View style={styles.progressBarBg}>
+            <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
+          </View>
+        </View>
+        <View style={[styles.timerPill, { borderColor: getTimerColor() }]}>
+          <Text style={[styles.timerText, { color: getTimerColor() }]}>⏱️ {formatTime(timeLeft)}</Text>
+        </View>
+      </View>
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.questionCard}>
+
+          <View style={[styles.typeBadge, isCBT && styles.typeCBT, isFill && styles.typeFill, isPOP && styles.typePOP]}>
+            <Text style={styles.typeBadgeText}>
+              {isCBT ? 'Multiple Choice' : isFill ? 'Fill in the Gap' : 'Theory Question'}
+            </Text>
+          </View>
+
+          <Text style={styles.questionText}>
+            {currentQ?.question_text || currentQ?.text}
+          </Text>
+
+          {isCBT && ['a', 'b', 'c', 'd'].map((letter) => {
+            const optionText = currentQ[`option_${letter}`];
+            if (!optionText) return null;
+            return (
+              <TouchableOpacity
+                key={letter}
+                style={getOptionStyle(currentQ, letter)}
+                onPress={() => !isRevealed && setSelectedAnswers({ ...selectedAnswers, [qId]: letter })}
+                activeOpacity={0.75}
+                disabled={isRevealed}
+              >
+                <View style={[
+                  styles.optionLetterBox,
+                  selectedAnswers[qId] === letter && styles.optionLetterBoxActive,
+                  isRevealed && letter === (currentQ.correct_answer || '').toLowerCase() && styles.optionLetterBoxCorrect,
+                ]}>
+                  <Text style={[
+                    styles.optionLetter,
+                    (selectedAnswers[qId] === letter || (isRevealed && letter === (currentQ.correct_answer || '').toLowerCase())) && { color: '#fff' },
+                  ]}>
+                    {letter.toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={getOptionTextStyle(currentQ, letter)}>{optionText}</Text>
+              </TouchableOpacity>
+            );
+          })}
+
+          {isFill && (
+            <TextInput
+              style={[styles.fillInput, isRevealed && styles.fillInputDisabled]}
+              placeholder="Type your answer here..."
+              placeholderTextColor="#aaa"
+              value={selectedAnswers[qId] || ''}
+              onChangeText={(text) => !isRevealed && setSelectedAnswers({ ...selectedAnswers, [qId]: text })}
+              editable={!isRevealed}
+            />
+          )}
+
+          {isPOP && (
+            <TextInput
+              style={[styles.popInput, isRevealed && styles.fillInputDisabled]}
+              placeholder="Write your answer here..."
+              placeholderTextColor="#aaa"
+              multiline
+              numberOfLines={6}
+              value={selectedAnswers[qId] || ''}
+              onChangeText={(text) => !isRevealed && setSelectedAnswers({ ...selectedAnswers, [qId]: text })}
+              editable={!isRevealed}
+              textAlignVertical="top"
+            />
+          )}
+
+          {!isRevealed ? (
+            <TouchableOpacity style={styles.revealBtn} onPress={() => setRevealed({ ...revealed, [qId]: true })}>
+              <Text style={styles.revealBtnText}>💡 Reveal Answer</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.answerBox}>
+              <Text style={styles.answerBoxLabel}>✅ Correct Answer:</Text>
+              <Text style={styles.answerBoxText}>
+                {isCBT && correctAns
+                  ? `${(correctAns).toUpperCase().replace('OPTION ', '')}. ${currentQ[`option_${correctAns.toLowerCase().replace('option ', '')}`] || correctAns}`
+                  : correctAns || 'Answer not provided in database.'}
+              </Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <TouchableOpacity style={[styles.navBtn, currentIndex === 0 && styles.navBtnDisabled]} disabled={currentIndex === 0} onPress={() => setCurrentIndex((c) => c - 1)}>
+          <Text style={styles.navBtnText}>← Prev</Text>
+        </TouchableOpacity>
+
+        {currentIndex === questions.length - 1 ? (
+          <TouchableOpacity style={styles.submitBtn} onPress={confirmSubmit}>
+            <Text style={styles.submitBtnText}>Submit Exam ✅</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.navBtn} onPress={() => setCurrentIndex((c) => c + 1)}>
+            <Text style={styles.navBtnText}>Next →</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </SafeAreaView>
+  );
 }
 
+// ─── STYLES ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9f8' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  startContainer: { flex: 1, backgroundColor: '#fff' },
-  startBody: { padding: 30, alignItems: 'center' },
-  startIconBox: { width: 100, height: 100, backgroundColor: NOUN_LIGHT_GREEN, borderRadius: 50, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  startTitle: { fontSize: 28, fontWeight: 'bold', color: NOUN_GREEN },
-  startSubtitle: { fontSize: 16, color: '#666', marginBottom: 30 },
-  rulesCard: { backgroundColor: NOUN_LIGHT_GREEN, padding: 20, borderRadius: 15, width: '100%', marginBottom: 30 },
-  rulesTitle: { fontWeight: 'bold', fontSize: 16, marginBottom: 10, color: NOUN_MID_GREEN },
-  ruleItem: { fontSize: 14, color: '#444', marginBottom: 8 },
-  startBtn: { backgroundColor: NOUN_GREEN, width: '100%', padding: 18, borderRadius: 15, alignItems: 'center' },
-  startBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  examHeader: { backgroundColor: NOUN_GREEN, padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  examQNum: { color: '#fff', fontSize: 14, opacity: 0.9 },
-  progressBarBg: { width: 120, height: 4, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 2, marginTop: 4 },
-  progressBarFill: { height: '100%', backgroundColor: '#fff', borderRadius: 2 },
-  timerPill: { backgroundColor: 'rgba(0,0,0,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  timerText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  scrollContent: { padding: 16 },
-  questionCard: { backgroundColor: '#fff', padding: 20, borderRadius: 20, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
-  questionText: { fontSize: 19, fontWeight: 'bold', color: '#1a1a1a', lineHeight: 28, marginBottom: 20 },
-  option: { flexDirection: 'row', alignItems: 'center', padding: 15, borderHeight: 2, borderColor: '#f0f0f0', borderRadius: 12, marginBottom: 12, backgroundColor: '#fafafa', borderWidth: 1 },
-  optionSelected: { borderColor: NOUN_GREEN, backgroundColor: NOUN_LIGHT_GREEN },
-  optionCorrect: { borderColor: '#2e7d32', backgroundColor: '#e8f5e9' },
-  optionLetterBox: { width: 30, height: 30, borderRadius: 8, backgroundColor: '#eee', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  popInput: { borderWidth: 1, borderColor: '#eee', borderRadius: 12, padding: 15, minHeight: 120, backgroundColor: '#fafafa', textAlignVertical: 'top' },
-  answerBox: { marginTop: 20, padding: 18, backgroundColor: NOUN_LIGHT_GREEN, borderRadius: 12, borderLeftWidth: 5, borderLeftColor: NOUN_GREEN },
-  answerBoxLabel: { fontWeight: 'bold', color: NOUN_MID_GREEN, fontSize: 13, marginBottom: 4 },
-  answerBoxText: { fontSize: 16, color: NOUN_GREEN, fontWeight: '600' },
-  revealBtn: { marginTop: 15, padding: 12, alignItems: 'center', backgroundColor: '#f0f0f0', borderRadius: 10 },
-  revealBtnText: { color: '#666', fontWeight: 'bold' },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eee' },
-  navBtn: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, backgroundColor: '#f5f5f5' },
-  navBtnText: { fontWeight: 'bold', color: '#555' },
-  submitBtn: { paddingVertical: 12, paddingHorizontal: 25, borderRadius: 10, backgroundColor: NOUN_GREEN },
-  submitBtnText: { color: '#fff', fontWeight: 'bold' },
-  gradeCard: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
-  gradeLetter: { fontSize: 70, fontWeight: 'bold', color: NOUN_GREEN, marginBottom: 10 },
-  gradeScore: { fontSize: 18, color: '#666', marginBottom: 30 },
-  btnGreen: { backgroundColor: NOUN_GREEN, padding: 16, borderRadius: 15, width: '100%', alignItems: 'center' },
-  btnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
+  container: { flex: 1, backgroundColor: '#f0f4f0' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f4f0', padding: 30 },
+  loadingText: { marginTop: 12, color: NOUN_GREEN, fontSize: 16 },
+  errorEmoji: { fontSize: 50, marginBottom: 12 },
+  errorText: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 20 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: NOUN_GREEN, marginBottom: 8 },
+  emptySubtitle: { fontSize: 14, color: '#888', textAlign: 'center', marginBottom: 24, lineHeight: 22 },
+
+  startContainer: { flex: 1, backgroundColor: '#f0f4f0' },
+  startHeader: { backgroundColor: NOUN_GREEN, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 20 },
+  backIcon: { width: 40, height: 40, justifyContent: 'center' },
+  startHeaderTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  startBody: { padding: 24, alignItems: 'center' },
+  startIconBox: { width: 100, height: 100, backgroundColor: NOUN_LIGHT_GREEN, borderRadius: 50, justifyContent: 'center', alignItems: 'center', marginBottom: 16, marginTop: 8 },
+  startTitle: { fontSize: 26, fontWeight: '800', color: NOUN_GREEN, marginBottom: 4 },
+  startSubtitle: { fontSize: 15, color: '#666', marginBottom: 24 },
+  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'center' },
+  statCard: { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20, alignItems: 'center', minWidth: 80, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  statNum: { fontSize: 24, fontWeight: '800', color: NOUN_GREEN },
+  statLabel: { fontSize: 12, color: '#888', marginTop: 2 },
+  rulesCard: { width: '100%', backgroundColor: NOUN_LIGHT_GREEN, borderRadius: 16, padding: 20, marginBottom: 24, borderLeftWidth: 4, borderLeftColor: NOUN_GREEN },
+  rulesTitle: { fontSize: 16, fontWeight: '700', color: NOUN_GREEN, marginBottom: 10 },
+  ruleItem: { fontSize: 14, color: NOUN_MID_GREEN, lineHeight: 26 },
+  startBtn: { width: '100%', backgroundColor: NOUN_GREEN, borderRadius: 16, paddingVertical: 18, alignItems: 'center', shadowColor: NOUN_GREEN, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+  startBtnText: { color: '#fff', fontSize: 18, fontWeight: '700' },
+
+  examHeader: { backgroundColor: NOUN_GREEN, padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  examQNum: { color: '#a8d5b5', fontSize: 13, marginBottom: 6 },
+  progressBarBg: { width: 160, height: 6, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 3, overflow: 'hidden' },
+  progressBarFill: { height: '100%', backgroundColor: '#4caf50', borderRadius: 3 },
+  timerPill: { borderWidth: 2, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7 },
+  timerText: { fontSize: 17, fontWeight: '800', letterSpacing: 1 },
+
+  scrollContent: { padding: 16, paddingBottom: 40 },
+  questionCard: { backgroundColor: '#fff', borderRadius: 18, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
+  typeBadge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, marginBottom: 14 },
+  typeCBT: { backgroundColor: '#e3f2fd' },
+  typeFill: { backgroundColor: '#fff3e0' },
+  typePOP: { backgroundColor: '#fce4ec' },
+  typeBadgeText: { fontSize: 12, fontWeight: '700', color: '#333' },
+  questionText: { fontSize: 17, fontWeight: '600', color: '#1a1a1a', lineHeight: 26, marginBottom: 18 },
+
+  option: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 12, borderWidth: 2, borderColor: '#eee', backgroundColor: '#fafafa', marginBottom: 10 },
+  optionSelected: { borderColor: NOUN_GREEN, backgroundColor: NOUN_LIGHT_GREEN },
+  optionCorrect: { borderColor: '#4caf50', backgroundColor: '#e8f5e9' },
+  optionWrong: { borderColor: '#f44336', backgroundColor: '#ffebee' },
+  optionLetterBox: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center', marginRight: 12, flexShrink: 0 },
+  optionLetterBoxActive: { backgroundColor: NOUN_GREEN },
+  optionLetterBoxCorrect: { backgroundColor: '#4caf50' },
+  optionLetter: { fontWeight: '700', fontSize: 14, color: '#555' },
+  optionText: { fontSize: 15, color: '#333', flex: 1, lineHeight: 22 },
+  optionTextSelected: { color: NOUN_GREEN, fontWeight: '600', flex: 1, lineHeight: 22 },
+  optionTextCorrect: { color: '#2e7d32', fontWeight: '600', flex: 1, lineHeight: 22 },
+  optionTextWrong: { color: '#c62828', fontWeight: '600', flex: 1, lineHeight: 22 },
+
+  fillInput: { borderWidth: 2, borderColor: '#ddd', borderRadius: 12, padding: 16, fontSize: 16, backgroundColor: '#fafafa', marginBottom: 12, color: '#333' },
+  fillInputDisabled: { backgroundColor: '#f5f5f5', borderColor: '#eee' },
+  popInput: { borderWidth: 2, borderColor: '#ddd', borderRadius: 12, padding: 16, fontSize: 16, backgroundColor: '#fafafa', marginBottom: 12, minHeight: 160, color: '#333' },
+
+  revealBtn: { marginTop: 8, padding: 14, borderRadius: 12, backgroundColor: '#e0f2f1', alignItems: 'center', borderWidth: 1, borderColor: '#80cbc4' },
+  revealBtnText: { color: '#00695c', fontWeight: '700', fontSize: 15 },
+  answerBox: { marginTop: 12, padding: 16, backgroundColor: NOUN_LIGHT_GREEN, borderRadius: 12, borderWidth: 1, borderColor: '#81c784' },
+  answerBoxLabel: { fontSize: 13, color: NOUN_MID_GREEN, fontWeight: '700', marginBottom: 6 },
+  answerBoxText: { fontSize: 16, color: NOUN_GREEN, fontWeight: '600', lineHeight: 24 },
+
+  footer: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eee' },
+  navBtn: { backgroundColor: '#f0f0f0', paddingVertical: 14, paddingHorizontal: 24, borderRadius: 12, minWidth: 100, alignItems: 'center' },
+  navBtnDisabled: { opacity: 0.3 },
+  navBtnText: { fontWeight: '700', color: '#555', fontSize: 15 },
+  submitBtn: { backgroundColor: NOUN_GREEN, paddingVertical: 14, paddingHorizontal: 24, borderRadius: 12, minWidth: 140, alignItems: 'center', shadowColor: NOUN_GREEN, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 4 },
+  submitBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+  resultsHeader: { backgroundColor: NOUN_GREEN, padding: 20, alignItems: 'center' },
+  resultsHeaderTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  resultsBody: { padding: 20, alignItems: 'center' },
+  gradeCard: { width: '100%', backgroundColor: '#fff', borderRadius: 20, padding: 30, alignItems: 'center', marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
+  gradeLetter: { fontSize: 80, fontWeight: '900', letterSpacing: -2 },
+  gradeScore: { fontSize: 24, fontWeight: '700', color: '#1a1a1a', marginTop: 4 },
+  gradePercent: { fontSize: 16, color: '#888', marginTop: 2 },
+  gradeMsg: { fontSize: 18, fontWeight: '600', marginTop: 10 },
+  resultStatsRow: { flexDirection: 'row', gap: 12, marginBottom: 24, width: '100%' },
+  resultStat: { flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 16, alignItems: 'center', borderWidth: 2 },
+  resultStatNum: { fontSize: 28, fontWeight: '800' },
+  resultStatLabel: { fontSize: 12, color: '#888', marginTop: 4, textAlign: 'center' },
+
+  btnGreen: { width: '100%', backgroundColor: NOUN_GREEN, borderRadius: 14, paddingVertical: 16, alignItems: 'center', shadowColor: NOUN_GREEN, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6, elevation: 4 },
+  btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  btnOutline: { width: '100%', backgroundColor: '#fff', borderRadius: 14, paddingVertical: 16, alignItems: 'center', borderWidth: 2, borderColor: NOUN_GREEN },
+  btnOutlineText: { color: NOUN_GREEN, fontSize: 16, fontWeight: '700' }
 });
