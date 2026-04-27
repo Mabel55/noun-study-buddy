@@ -48,45 +48,36 @@ export default function MockExamEngine() {
     try {
       const cleanId = String(id).split('?')[0];
       const isPOP = format === 'POP' || String(id).includes('format=POP');
+      
       let allQuestions: any[] = [];
 
-      // 🛡️ THE BULLETPROOF HELPER: Prevents HTML crashes and filters the 168-question bug
+      // 🛡️ THE INVINCIBLE HELPER: Stops crashes if Django fails or sends bad data
       const fetchSafe = async (url: string, type: string) => {
         try {
           const res = await fetch(url);
+          if (!res.ok) return []; // If Django gives a 404 or 500 error, skip safely
           
-          // If the URL is wrong or server rejects it, silently skip instead of crashing
-          if (!res.ok) return [];
-          
-          // CRITICAL FIX: If Django sends a 404 HTML page, this stops the JSON parser crash!
           const contentType = res.headers.get("content-type");
           if (!contentType || !contentType.includes("application/json")) return [];
 
           const data = await res.json();
-          let rawList = Array.isArray(data) ? data : (data.results || []);
-          if (!Array.isArray(rawList)) return [];
-
+          const rawList = Array.isArray(data) ? data : (data.results || []);
+          
           return rawList
             .filter((q: any) => {
-              if (!q || typeof q !== 'object') return false;
-              
-              // If there's no course attached to the object, assume it belongs to the endpoint
-              if (!q.course && !q.course_id) return true;
-
-              // Safely handle if Django sends the course as an integer (13) OR a dictionary ({id: 13, name: "CIT104"})
-              const courseIdValue = q.course?.id || q.course || q.course_id;
-              return String(courseIdValue) === String(cleanId);
+              // Deletes the extra questions to fix the "168 Questions" bug
+              const cId = String(q.course?.id || q.course || q.course_id || cleanId);
+              return cId === String(cleanId);
             })
             .map((q: any) => ({ ...q, qType: type }));
         } catch (e) {
-          console.error(`Error parsing ${type} from ${url}:`, e);
-          return [];
+          console.log(`Silently skipped broken URL: ${url}`, e);
+          return []; // Prevents the Yellow Triangle crash!
         }
       };
 
-      // 🚀 The EXACT Endpoints from your original working code
+      // 🚀 Run the fetches safely!
       if (isPOP) {
-        // Notice the correct, specific endpoint for POP!
         const popQ = await fetchSafe(`${BASE_URL}/api/courses/${cleanId}/pop-questions/`, 'POP');
         const fillQ = await fetchSafe(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL');
         allQuestions = [...popQ, ...fillQ];
@@ -99,8 +90,8 @@ export default function MockExamEngine() {
       setQuestions(allQuestions);
       setLoading(false);
     } catch (err) {
-      console.error('Fatal Fetch error:', err);
-      setError('Failed to load questions. Please check your connection.');
+      console.error('Outer Fetch error:', err);
+      setError('Failed to load questions. Check your connection.');
       setLoading(false);
     }
   };
