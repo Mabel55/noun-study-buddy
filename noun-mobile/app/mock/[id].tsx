@@ -18,8 +18,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 const BASE_URL = 'https://noun-study-buddy.onrender.com';
 const EXAM_MINUTES = 45;
 
-// 🎨 TRUE NOUN GREEN 
-const NOUN_GREEN = '#006600'; 
+// NOUN Brand Colors (Refined to your exact matching Green)
+const NOUN_GREEN = '#006600';
 const NOUN_LIGHT_GREEN = '#e8f5e9';
 const NOUN_MID_GREEN = '#2e7d32';
 
@@ -37,15 +37,13 @@ export default function MockExamEngine() {
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(EXAM_MINUTES * 60);
   const [examStarted, setExamStarted] = useState(false);
+  
   const timerRef = useRef<any>(null);
+  
+  // 🚀 YOUR FIX: Stops the questions from multiplying on re-renders!
+  const hasFetched = useRef(false);
 
   // ─── Fetch Questions ──────────────────────────────────────────────────
-  // 🚀 YOUR FIX: Stops the questions from multiplying on re-renders!
-  const hasFetched = useRef(false);
-
-  // 🚀 YOUR FIX: Stops the questions from multiplying on re-renders!
-  const hasFetched = useRef(false);
-
   useEffect(() => {
     if (id && !hasFetched.current) {
       hasFetched.current = true;
@@ -53,7 +51,7 @@ export default function MockExamEngine() {
     }
   }, [id, format]);
 
-  // 🚀 YOUR ORIGINAL WORKING FETCH LOGIC
+  // 🚀 YOUR ORIGINAL, PERFECT FETCHING LOGIC
   const fetchQuestions = async () => {
     try {
       const cleanId = String(id).split('?')[0];
@@ -62,43 +60,35 @@ export default function MockExamEngine() {
       let allQuestions: any[] = [];
 
       if (isPOP) {
-        // POP exam — fetch theory questions
+        // Fetch POP theory questions directly
         const popRes = await fetch(`${BASE_URL}/api/courses/${cleanId}/pop-questions/`);
         if (popRes.ok) {
           const popData = await popRes.json();
-          const popQ = Array.isArray(popData)
-            ? popData.map((q: any) => ({ ...q, qType: 'POP' }))
-            : [];
+          const popQ = Array.isArray(popData) ? popData.map((q: any) => ({ ...q, qType: 'POP' })) : [];
           allQuestions = [...allQuestions, ...popQ];
         }
 
-        // Also fetch fill-in-gap
+        // Fetch fill-in-gap
         const fillRes = await fetch(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`);
         if (fillRes.ok) {
           const fillData = await fillRes.json();
-          const fillQ = Array.isArray(fillData)
-            ? fillData.map((q: any) => ({ ...q, qType: 'FILL' }))
-            : [];
+          const fillQ = Array.isArray(fillData) ? fillData.map((q: any) => ({ ...q, qType: 'FILL' })) : [];
           allQuestions = [...allQuestions, ...fillQ];
         }
       } else {
-        // CBT exam — fetch MCQ questions
+        // Fetch MCQ questions directly
         const mcqRes = await fetch(`${BASE_URL}/api/questions/?course_id=${cleanId}`);
         if (mcqRes.ok) {
           const mcqData = await mcqRes.json();
-          const mcqQ = Array.isArray(mcqData)
-            ? mcqData.map((q: any) => ({ ...q, qType: 'CBT' }))
-            : [];
+          const mcqQ = Array.isArray(mcqData) ? mcqData.map((q: any) => ({ ...q, qType: 'CBT' })) : [];
           allQuestions = [...allQuestions, ...mcqQ];
         }
 
-        // Also fetch fill-in-gap for CBT
+        // Fetch fill-in-gap for CBT
         const fillRes = await fetch(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`);
         if (fillRes.ok) {
           const fillData = await fillRes.json();
-          const fillQ = Array.isArray(fillData)
-            ? fillData.map((q: any) => ({ ...q, qType: 'FILL' }))
-            : [];
+          const fillQ = Array.isArray(fillData) ? fillData.map((q: any) => ({ ...q, qType: 'FILL' })) : [];
           allQuestions = [...allQuestions, ...fillQ];
         }
       }
@@ -120,7 +110,7 @@ export default function MockExamEngine() {
           if (prev <= 1) {
             clearInterval(timerRef.current);
             if (Platform.OS === 'web') {
-              window.alert("Time's Up! Submitting your exam automatically.");
+              window.alert("Time's Up! Submitting exam automatically.");
             } else {
               Alert.alert("Time's Up!", "Your 45 minutes are over. Submitting exam now.");
             }
@@ -146,14 +136,14 @@ export default function MockExamEngine() {
     return '#f44336';
   };
 
-  // ─── Submit Logic ─────────────────────────────────────────────────────
+  // ─── Submit ───────────────────────────────────────────────────────────
   const confirmSubmit = () => {
     const unanswered = questions.length - Object.keys(selectedAnswers).length;
     const msg = unanswered > 0 
       ? `You have ${unanswered} unanswered question(s). Submit anyway?` 
-      : `Are you sure you want to submit your answers?`;
+      : 'Are you sure you want to submit your answers?';
 
-    // 🚀 FIXED: Allow Submit button to work on Web/Laptops!
+    // 🚀 FIXED: Web/Chrome Support
     if (Platform.OS === 'web') {
       const confirm = window.confirm(msg);
       if (confirm) submitExam();
@@ -171,7 +161,7 @@ export default function MockExamEngine() {
     let correct = 0;
     questions.forEach((q) => {
       const userAns = (selectedAnswers[String(q.id)] || '').trim().toLowerCase();
-      // 🚀 FIXED: Finds the correct answer no matter what your Django database calls it
+      // Safely checks all possible column names
       const correctAns = (q.correct_answer || q.answer_text || q.fill_answer || q.answer || '').trim().toLowerCase();
       if (userAns && correctAns && userAns === correctAns) correct++;
     });
@@ -179,8 +169,8 @@ export default function MockExamEngine() {
     setSubmitted(true);
   };
 
-  // ─── UI Styling Logic ─────────────────────────────────────────────────
-  const getOptionStyle = (q: any, letter: string): any => {
+  // ─── Get option style ─────────────────────────────────────────────────
+  const getOptionStyle = (q: any, letter: string) => {
     const isSelected = selectedAnswers[String(q.id)] === letter;
     const isRevealed = revealed[String(q.id)];
     const correct = (q.correct_answer || '').toLowerCase();
@@ -193,7 +183,7 @@ export default function MockExamEngine() {
     return styles.option;
   };
 
-  const getOptionTextStyle = (q: any, letter: string): any => {
+  const getOptionTextStyle = (q: any, letter: string) => {
     const isSelected = selectedAnswers[String(q.id)] === letter;
     const isRevealed = revealed[String(q.id)];
     const correct = (q.correct_answer || '').toLowerCase();
@@ -222,7 +212,8 @@ export default function MockExamEngine() {
       <SafeAreaView style={styles.center}>
         <Text style={styles.errorEmoji}>⚠️</Text>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.btnGreen} onPress={fetchQuestions}>
+        {/* Reset the ref so it can fetch again */}
+        <TouchableOpacity style={styles.btnGreen} onPress={() => { hasFetched.current = false; fetchQuestions(); }}>
           <Text style={styles.btnText}>Retry</Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -243,7 +234,7 @@ export default function MockExamEngine() {
     );
   }
 
-  // ─── START SCREEN (Your Beautiful UI) ───────────────────────────────
+  // ─── START SCREEN ─────────────────────────────────────────────────────
   if (!examStarted) {
     const cbtCount = questions.filter((q) => q.qType === 'CBT').length;
     const fillCount = questions.filter((q) => q.qType === 'FILL').length;
@@ -358,7 +349,7 @@ export default function MockExamEngine() {
   const isPOP = currentQ?.qType === 'POP';
   const isRevealed = revealed[qId];
   
-  // 🚀 FIXED: Ensures POP answers are found and displayed in the green box
+  // Gets correct answer dynamically from database
   const correctAns = (currentQ?.correct_answer || currentQ?.answer_text || currentQ?.fill_answer || currentQ?.answer || '');
   
   const answeredCount = Object.keys(selectedAnswers).length;
@@ -382,6 +373,7 @@ export default function MockExamEngine() {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
         <View style={styles.questionCard}>
+
           <View style={[styles.typeBadge, isCBT && styles.typeCBT, isFill && styles.typeFill, isPOP && styles.typePOP]}>
             <Text style={styles.typeBadgeText}>
               {isCBT ? 'Multiple Choice' : isFill ? 'Fill in the Gap' : 'Theory Question'}
@@ -406,18 +398,16 @@ export default function MockExamEngine() {
                 <View style={[
                   styles.optionLetterBox,
                   selectedAnswers[qId] === letter && styles.optionLetterBoxActive,
-                  isRevealed && letter === correctAns.toLowerCase() && styles.optionLetterBoxCorrect,
+                  isRevealed && letter === (currentQ.correct_answer || '').toLowerCase() && styles.optionLetterBoxCorrect,
                 ]}>
                   <Text style={[
                     styles.optionLetter,
-                    (selectedAnswers[qId] === letter || (isRevealed && letter === correctAns.toLowerCase())) && { color: '#fff' },
+                    (selectedAnswers[qId] === letter || (isRevealed && letter === (currentQ.correct_answer || '').toLowerCase())) && { color: '#fff' },
                   ]}>
                     {letter.toUpperCase()}
                   </Text>
                 </View>
-                <Text style={getOptionTextStyle(currentQ, letter)}>
-                  {optionText}
-                </Text>
+                <Text style={getOptionTextStyle(currentQ, letter)}>{optionText}</Text>
               </TouchableOpacity>
             );
           })}
@@ -436,7 +426,7 @@ export default function MockExamEngine() {
           {isPOP && (
             <TextInput
               style={[styles.popInput, isRevealed && styles.fillInputDisabled]}
-              placeholder="Write your theory answer here..."
+              placeholder="Write your answer here..."
               placeholderTextColor="#aaa"
               multiline
               numberOfLines={6}
@@ -454,10 +444,11 @@ export default function MockExamEngine() {
           ) : (
             <View style={styles.answerBox}>
               <Text style={styles.answerBoxLabel}>✅ Correct Answer:</Text>
+              {/* 🚀 FIXED: Renders the precise correct option dynamically */}
               <Text style={styles.answerBoxText}>
-                {isCBT
+                {isCBT && correctAns
                   ? `${(correctAns).toUpperCase().replace('OPTION ', '')}. ${currentQ[`option_${correctAns.toLowerCase().replace('option ', '')}`] || correctAns}`
-                  : correctAns || 'No answer uploaded in database yet.'}
+                  : correctAns || 'Answer not provided in database.'}
               </Text>
             </View>
           )}
@@ -573,5 +564,5 @@ const styles = StyleSheet.create({
   btnGreen: { width: '100%', backgroundColor: NOUN_GREEN, borderRadius: 14, paddingVertical: 16, alignItems: 'center', shadowColor: NOUN_GREEN, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6, elevation: 4 },
   btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   btnOutline: { width: '100%', backgroundColor: '#fff', borderRadius: 14, paddingVertical: 16, alignItems: 'center', borderWidth: 2, borderColor: NOUN_GREEN },
-  btnOutlineText: { color: NOUN_GREEN, fontSize: 16, fontWeight: '700' },
+  btnOutlineText: { color: NOUN_GREEN, fontSize: 16, fontWeight: '700' }
 });
