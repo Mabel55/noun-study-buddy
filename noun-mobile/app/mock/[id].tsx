@@ -39,7 +39,7 @@ export default function MockExamEngine() {
   
   const timerRef = useRef<any>(null);
   
-  // 🚀 YOUR FIX: Stops the questions from multiplying on re-renders
+  // 🚀 YOUR FIX: Stops the questions from multiplying
   const hasFetched = useRef(false);
 
   useEffect(() => {
@@ -49,27 +49,56 @@ export default function MockExamEngine() {
     }
   }, [id, format]);
 
-  // 🚀 THE PERFECT, ORIGINAL FETCH LOGIC
+  // 🚀 THE HYBRID MASTER FETCH
   const fetchQuestions = async () => {
     try {
       const cleanId = String(id).split('?')[0];
       const isPOP = format === 'POP' || String(id).includes('format=POP');
 
-      // Hit the Master Course Endpoint! Django does all the filtering for us!
-      const response = await fetch(`${BASE_URL}/api/courses/${cleanId}/`);
-      if (!response.ok) throw new Error("Failed to fetch course data");
-      const data = await response.json();
+      // 1. Fetch Master Course Data (We know this perfectly returns POP and FILL)
+      const courseRes = await fetch(`${BASE_URL}/api/courses/${cleanId}/`);
+      if (!courseRes.ok) throw new Error("Failed to fetch course data");
+      const courseData = await courseRes.json();
 
-      // Safely map the exact questions Django gives us
-      const cbt = (data.cbt_questions || []).map((q: any) => ({ ...q, qType: 'CBT' }));
-      const pop = (data.pop_questions || []).map((q: any) => ({ ...q, qType: 'POP' }));
-      const fill = (data.fill_questions || []).map((q: any) => ({ ...q, qType: 'FILL' }));
+      // Get the perfectly working POP and FILL questions
+      const pop = (courseData.pop_questions || []).map((q: any) => ({ ...q, qType: 'POP' }));
+      const fill = (courseData.fill_questions || []).map((q: any) => ({ ...q, qType: 'FILL' }));
 
-      let allQuestions = [];
+      let allQuestions: any[] = [];
+
       if (isPOP) {
         allQuestions = [...pop, ...fill];
       } else {
-        allQuestions = [...cbt, ...fill];
+        // 2. For CBT, get the exact allowed IDs from the Master Data
+        const validCbtIds = (courseData.cbt_questions || []).map((q: any) => String(typeof q === 'object' ? q.id : q));
+
+        // 3. Fetch the full A/B/C/D text from the questions endpoint
+        try {
+          const mcqRes = await fetch(`${BASE_URL}/api/questions/?course_id=${cleanId}`);
+          if (mcqRes.ok) {
+            const mcqData = await mcqRes.json();
+            let mcqQ = Array.isArray(mcqData) ? mcqData : (mcqData.results || []);
+
+            // 4. THE FILTER: Keep only the questions that match our valid IDs!
+            if (validCbtIds.length > 0) {
+              mcqQ = mcqQ.filter((q: any) => validCbtIds.includes(String(q.id)));
+            } else {
+              // Backup filter if IDs are empty
+              mcqQ = mcqQ.filter((q: any) => {
+                const cVal = String(q.course?.id || q.course || q.course_id || '');
+                return cVal === String(cleanId) || cVal.includes(`/courses/${cleanId}/`);
+              });
+            }
+
+            const cbt = mcqQ.map((q: any) => ({ ...q, qType: 'CBT' }));
+            allQuestions = [...cbt, ...fill];
+          } else {
+            allQuestions = [...fill]; // Fallback if MCQ fails
+          }
+        } catch (e) {
+          console.log("Error fetching CBT details", e);
+          allQuestions = [...fill];
+        }
       }
 
       setQuestions(allQuestions);
