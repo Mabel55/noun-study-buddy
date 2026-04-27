@@ -49,56 +49,60 @@ export default function MockExamEngine() {
     }
   }, [id, format]);
 
-  // 🚀 THE HYBRID MASTER FETCH
+  // 🚀 THE ULTIMATE HYBRID FETCHER
   const fetchQuestions = async () => {
     try {
       const cleanId = String(id).split('?')[0];
       const isPOP = format === 'POP' || String(id).includes('format=POP');
 
-      // 1. Fetch Master Course Data (We know this perfectly returns POP and FILL)
+      // 1. Get the Master Course Data
+      // This gives us the full objects for POP and FILL, but only the ID numbers for CBT.
       const courseRes = await fetch(`${BASE_URL}/api/courses/${cleanId}/`);
       if (!courseRes.ok) throw new Error("Failed to fetch course data");
       const courseData = await courseRes.json();
 
-      // Get the perfectly working POP and FILL questions
-      const pop = (courseData.pop_questions || []).map((q: any) => ({ ...q, qType: 'POP' }));
-      const fill = (courseData.fill_questions || []).map((q: any) => ({ ...q, qType: 'FILL' }));
+      // Extract POP and FILL (Django sends their full text here, so they are ready to use)
+      const popQ = (courseData.pop_questions || []).map((q: any) => ({ ...q, qType: 'POP' }));
+      const fillQ = (courseData.fill_questions || []).map((q: any) => ({ ...q, qType: 'FILL' }));
 
       let allQuestions: any[] = [];
 
       if (isPOP) {
-        allQuestions = [...pop, ...fill];
+        allQuestions = [...popQ, ...fillQ];
       } else {
-        // 2. For CBT, get the exact allowed IDs from the Master Data
+        // 2. Extract the exact 49 CBT ID numbers from the course
         const validCbtIds = (courseData.cbt_questions || []).map((q: any) => String(typeof q === 'object' ? q.id : q));
 
-        // 3. Fetch the full A/B/C/D text from the questions endpoint
-        try {
-          const mcqRes = await fetch(`${BASE_URL}/api/questions/?course_id=${cleanId}`);
-          if (mcqRes.ok) {
-            const mcqData = await mcqRes.json();
-            let mcqQ = Array.isArray(mcqData) ? mcqData : (mcqData.results || []);
+        let cbtQ: any[] = [];
+        
+        // Quick check: If Django actually sent the A/B/C/D options directly, use them!
+        const hasOptions = courseData.cbt_questions?.some((q: any) => typeof q === 'object' && (q.option_a || q.option_A));
+        
+        if (hasOptions) {
+          cbtQ = courseData.cbt_questions;
+        } else {
+          try {
+            // 3. Fetch the full A/B/C/D text from the questions endpoint
+            const mcqRes = await fetch(`${BASE_URL}/api/questions/?course_id=${cleanId}`);
+            if (mcqRes.ok) {
+              const mcqData = await mcqRes.json();
+              const rawMcq = Array.isArray(mcqData) ? mcqData : (mcqData.results || []);
 
-            // 4. THE FILTER: Keep only the questions that match our valid IDs!
-            if (validCbtIds.length > 0) {
-              mcqQ = mcqQ.filter((q: any) => validCbtIds.includes(String(q.id)));
-            } else {
-              // Backup filter if IDs are empty
-              mcqQ = mcqQ.filter((q: any) => {
-                const cVal = String(q.course?.id || q.course || q.course_id || '');
-                return cVal === String(cleanId) || cVal.includes(`/courses/${cleanId}/`);
-              });
+              // 4. THE MAGIC FILTER: Keep only the questions whose ID is on the valid list!
+              if (validCbtIds.length > 0) {
+                cbtQ = rawMcq.filter((q: any) => validCbtIds.includes(String(q.id)));
+              } else {
+                // Fallback just in case
+                cbtQ = rawMcq.filter((q: any) => String(q.course) === cleanId || String(q.course_id) === cleanId);
+              }
             }
-
-            const cbt = mcqQ.map((q: any) => ({ ...q, qType: 'CBT' }));
-            allQuestions = [...cbt, ...fill];
-          } else {
-            allQuestions = [...fill]; // Fallback if MCQ fails
+          } catch (e) {
+            console.log("Error fetching CBT details", e);
           }
-        } catch (e) {
-          console.log("Error fetching CBT details", e);
-          allQuestions = [...fill];
         }
+
+        cbtQ = cbtQ.map((q: any) => ({ ...q, qType: 'CBT' }));
+        allQuestions = [...cbtQ, ...fillQ];
       }
 
       setQuestions(allQuestions);
