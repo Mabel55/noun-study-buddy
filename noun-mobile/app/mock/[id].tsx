@@ -18,7 +18,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 const BASE_URL = 'https://noun-study-buddy.onrender.com';
 const EXAM_MINUTES = 45;
 
-// NOUN Brand Colors (Refined to your exact matching Green)
 const NOUN_GREEN = '#006600';
 const NOUN_LIGHT_GREEN = '#e8f5e9';
 const NOUN_MID_GREEN = '#2e7d32';
@@ -40,10 +39,9 @@ export default function MockExamEngine() {
   
   const timerRef = useRef<any>(null);
   
-  // 🚀 YOUR FIX: Stops the questions from multiplying on re-renders!
+  // 🚀 YOUR FIX: Stops the questions from multiplying on re-renders
   const hasFetched = useRef(false);
 
-  // ─── Fetch Questions ──────────────────────────────────────────────────
   useEffect(() => {
     if (id && !hasFetched.current) {
       hasFetched.current = true;
@@ -51,46 +49,26 @@ export default function MockExamEngine() {
     }
   }, [id, format]);
 
-  // 🚀 YOUR ORIGINAL, PERFECT FETCHING LOGIC
+  // 🚀 YOUR ORIGINAL MASTER FETCH LOGIC
   const fetchQuestions = async () => {
     try {
       const cleanId = String(id).split('?')[0];
       const isPOP = format === 'POP' || String(id).includes('format=POP');
 
-      let allQuestions: any[] = [];
+      // Hit the Master Course Endpoint to get all 3 question types perfectly filtered
+      const response = await fetch(`${BASE_URL}/api/courses/${cleanId}/`);
+      if (!response.ok) throw new Error("Failed to fetch course data");
+      const data = await response.json();
 
+      const cbt = (data.cbt_questions || []).map((q: any) => ({ ...q, qType: 'CBT' }));
+      const pop = (data.pop_questions || []).map((q: any) => ({ ...q, qType: 'POP' }));
+      const fill = (data.fill_questions || []).map((q: any) => ({ ...q, qType: 'FILL' }));
+
+      let allQuestions = [];
       if (isPOP) {
-        // Fetch POP theory questions directly
-        const popRes = await fetch(`${BASE_URL}/api/courses/${cleanId}/pop-questions/`);
-        if (popRes.ok) {
-          const popData = await popRes.json();
-          const popQ = Array.isArray(popData) ? popData.map((q: any) => ({ ...q, qType: 'POP' })) : [];
-          allQuestions = [...allQuestions, ...popQ];
-        }
-
-        // Fetch fill-in-gap
-        const fillRes = await fetch(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`);
-        if (fillRes.ok) {
-          const fillData = await fillRes.json();
-          const fillQ = Array.isArray(fillData) ? fillData.map((q: any) => ({ ...q, qType: 'FILL' })) : [];
-          allQuestions = [...allQuestions, ...fillQ];
-        }
+        allQuestions = [...pop, ...fill];
       } else {
-        // Fetch MCQ questions directly
-        const mcqRes = await fetch(`${BASE_URL}/api/questions/?course_id=${cleanId}`);
-        if (mcqRes.ok) {
-          const mcqData = await mcqRes.json();
-          const mcqQ = Array.isArray(mcqData) ? mcqData.map((q: any) => ({ ...q, qType: 'CBT' })) : [];
-          allQuestions = [...allQuestions, ...mcqQ];
-        }
-
-        // Fetch fill-in-gap for CBT
-        const fillRes = await fetch(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`);
-        if (fillRes.ok) {
-          const fillData = await fillRes.json();
-          const fillQ = Array.isArray(fillData) ? fillData.map((q: any) => ({ ...q, qType: 'FILL' })) : [];
-          allQuestions = [...allQuestions, ...fillQ];
-        }
+        allQuestions = [...cbt, ...fill];
       }
 
       setQuestions(allQuestions);
@@ -143,7 +121,6 @@ export default function MockExamEngine() {
       ? `You have ${unanswered} unanswered question(s). Submit anyway?` 
       : 'Are you sure you want to submit your answers?';
 
-    // 🚀 FIXED: Web/Chrome Support
     if (Platform.OS === 'web') {
       const confirm = window.confirm(msg);
       if (confirm) submitExam();
@@ -161,7 +138,6 @@ export default function MockExamEngine() {
     let correct = 0;
     questions.forEach((q) => {
       const userAns = (selectedAnswers[String(q.id)] || '').trim().toLowerCase();
-      // Safely checks all possible column names
       const correctAns = (q.correct_answer || q.answer_text || q.fill_answer || q.answer || '').trim().toLowerCase();
       if (userAns && correctAns && userAns === correctAns) correct++;
     });
@@ -196,7 +172,7 @@ export default function MockExamEngine() {
     return styles.optionText;
   };
 
-  // ─── LOADING ──────────────────────────────────────────────────────────
+  // ─── UI SCREENS ──────────────────────────────────────────────────────────
   if (loading) {
     return (
       <SafeAreaView style={styles.center}>
@@ -206,13 +182,11 @@ export default function MockExamEngine() {
     );
   }
 
-  // ─── ERROR ────────────────────────────────────────────────────────────
   if (error) {
     return (
       <SafeAreaView style={styles.center}>
         <Text style={styles.errorEmoji}>⚠️</Text>
         <Text style={styles.errorText}>{error}</Text>
-        {/* Reset the ref so it can fetch again */}
         <TouchableOpacity style={styles.btnGreen} onPress={() => { hasFetched.current = false; fetchQuestions(); }}>
           <Text style={styles.btnText}>Retry</Text>
         </TouchableOpacity>
@@ -220,7 +194,6 @@ export default function MockExamEngine() {
     );
   }
 
-  // ─── NO QUESTIONS ─────────────────────────────────────────────────────
   if (questions.length === 0) {
     return (
       <SafeAreaView style={styles.center}>
@@ -234,7 +207,6 @@ export default function MockExamEngine() {
     );
   }
 
-  // ─── START SCREEN ─────────────────────────────────────────────────────
   if (!examStarted) {
     const cbtCount = questions.filter((q) => q.qType === 'CBT').length;
     const fillCount = questions.filter((q) => q.qType === 'FILL').length;
@@ -282,7 +254,6 @@ export default function MockExamEngine() {
     );
   }
 
-  // ─── RESULTS SCREEN ───────────────────────────────────────────────────
   if (submitted) {
     const percent = Math.round((score / questions.length) * 100);
     const getGrade = () => {
@@ -341,7 +312,6 @@ export default function MockExamEngine() {
     );
   }
 
-  // ─── EXAM SCREEN ──────────────────────────────────────────────────────
   const currentQ = questions[currentIndex];
   const qId = String(currentQ?.id);
   const isCBT = currentQ?.qType === 'CBT';
@@ -349,9 +319,7 @@ export default function MockExamEngine() {
   const isPOP = currentQ?.qType === 'POP';
   const isRevealed = revealed[qId];
   
-  // Gets correct answer dynamically from database
   const correctAns = (currentQ?.correct_answer || currentQ?.answer_text || currentQ?.fill_answer || currentQ?.answer || '');
-  
   const answeredCount = Object.keys(selectedAnswers).length;
   const progressPercent = (answeredCount / questions.length) * 100;
 
@@ -444,7 +412,6 @@ export default function MockExamEngine() {
           ) : (
             <View style={styles.answerBox}>
               <Text style={styles.answerBoxLabel}>✅ Correct Answer:</Text>
-              {/* 🚀 FIXED: Renders the precise correct option dynamically */}
               <Text style={styles.answerBoxText}>
                 {isCBT && correctAns
                   ? `${(correctAns).toUpperCase().replace('OPTION ', '')}. ${currentQ[`option_${correctAns.toLowerCase().replace('option ', '')}`] || correctAns}`
