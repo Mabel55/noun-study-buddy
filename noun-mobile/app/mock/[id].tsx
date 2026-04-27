@@ -15,7 +15,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────
-const BASE_URL = 'https://noun-study-buddy-1.onrender.com';
+const BASE_URL = 'https://noun-study-buddy.onrender.com';
 const EXAM_MINUTES = 45;
 
 // 🎨 TRUE NOUN GREEN 
