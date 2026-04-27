@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaVi
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 export default function ExamPreviewPage() {
-  const { id } = useLocalSearchParams();
+  // Grab the ID and the format (if the user selected POP earlier)
+  const { id, format } = useLocalSearchParams();
   const router = useRouter();
 
   const [courseData, setCourseData] = useState<any>(null);
@@ -12,7 +13,7 @@ export default function ExamPreviewPage() {
   useEffect(() => {
     const cleanId = String(id).split('?')[0];
 
-    // 👉 No "-1" in this URL!
+    // 👉 NO "-1" IN THIS URL! Connecting directly to the live backend.
     fetch(`https://noun-study-buddy.onrender.com/api/courses/${cleanId}/`)
       .then((res) => res.json())
       .then((data) => {
@@ -20,7 +21,7 @@ export default function ExamPreviewPage() {
         setLoading(false);
       })
       .catch((err) => {
-        console.error(err);
+        console.error("Preview Fetch Error:", err);
         setLoading(false);
       });
   }, [id]);
@@ -33,32 +34,41 @@ export default function ExamPreviewPage() {
     );
   }
 
-  // Count the questions to show the student
-  const totalQuestions = courseData?.cbt_questions?.length || 0;
+  // Check if this is a POP exam request
+  const isPOP = format === 'POP' || String(id).includes('format=POP');
+
+  // Count the questions accurately based on the format requested
+  const cbtCount = courseData?.cbt_questions?.length || 0;
+  const popCount = (courseData?.pop_questions?.length || 0) + (courseData?.fill_questions?.length || 0);
+  
+  const displayCount = isPOP ? popCount : cbtCount;
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>{courseData?.title || 'Course Exam'}</Text>
+        <Text style={styles.title}>{courseData?.title?.toUpperCase() || 'COURSE EXAM'}</Text>
         <Text style={styles.code}>{courseData?.code}</Text>
 
         <View style={styles.infoCard}>
-          <Text style={styles.infoText}>Total Questions: {totalQuestions}</Text>
+          <Text style={styles.infoText}>Total Questions: {displayCount}</Text>
           <Text style={styles.infoText}>Duration: 45 Minutes</Text>
-          <Text style={styles.infoText}>Format: Mixed (CBT & Fill-in)</Text>
+          <Text style={styles.infoText}>Format: {isPOP ? 'Pen-On-Paper (POP)' : 'Standard CBT'}</Text>
         </View>
 
-        {totalQuestions > 0 ? (
+        {displayCount > 0 ? (
           <TouchableOpacity
             style={styles.startButton}
-            // Pushes the student to the actual questions
-            onPress={() => router.push(`/mock/${id}`)}
+            onPress={() => {
+              // Pushes the student to the actual questions, keeping the POP format attached!
+              const nextUrl = isPOP ? `/mock/${id}?format=POP` : `/mock/${id}`;
+              router.push(nextUrl as any);
+            }}
           >
-            <Text style={styles.buttonText}>Start Mock Exam</Text>
+            <Text style={styles.buttonText}>Start {isPOP ? 'POP' : 'Mock'} Exam</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.errorBox}>
-            <Text style={styles.errorText}>No questions available yet.</Text>
+            <Text style={styles.errorText}>No {isPOP ? 'POP' : 'CBT'} questions available yet.</Text>
           </View>
         )}
 
@@ -83,5 +93,5 @@ const styles = StyleSheet.create({
   backButton: { marginTop: 20 },
   backText: { color: '#666', fontSize: 16 },
   errorBox: { padding: 15, backgroundColor: '#ffebee', borderRadius: 10, width: '100%', alignItems: 'center' },
-  errorText: { color: '#c62828', fontSize: 16 }
+  errorText: { color: '#c62828', fontSize: 16, textAlign: 'center' }
 });
