@@ -22,6 +22,12 @@ export default function CourseDetails() {
     return <ActivityIndicator size="large" color="#006400" style={{ marginTop: 50 }} />;
   }
 
+  // 🚀 THE SMART NOUN FILTER: Automatically checks the course level!
+  const courseCode = courseData?.code || '';
+  const firstDigitMatch = courseCode.match(/\d/); 
+  // If the first number in the course code is 3 or higher, it's a POP course!
+  const isPOP = firstDigitMatch && parseInt(firstDigitMatch[0], 10) >= 3;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -41,23 +47,25 @@ export default function CourseDetails() {
           <Text style={styles.actionText}>Read Summary</Text>
         </TouchableOpacity>
 
-        {/* 2. POP Exam Button (Forces the engine into Theory Mode) */}
-        <TouchableOpacity style={styles.actionCard} onPress={() => router.push(`/mock/${id}?format=POP` as any)}>
-          <Text style={styles.actionIcon}>📝</Text>
-          <View>
-            <Text style={styles.actionText}>POP Questions</Text>
-            <Text style={styles.subText}>(Theory & Fill-in-gap)</Text>
-          </View>
-        </TouchableOpacity>
+        {/* 2. Dynamic Exam Button (Changes based on 100L-200L vs 300L+) */}
+        {isPOP ? (
+          <TouchableOpacity style={styles.actionCard} onPress={() => router.push(`/mock/${id}?format=POP` as any)}>
+            <Text style={styles.actionIcon}>📝</Text>
+            <View>
+              <Text style={styles.actionText}>Take POP Exam</Text>
+              <Text style={styles.subText}>(Theory & Fill-in-gap)</Text>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.actionCard} onPress={() => router.push(`/mock/${id}` as any)}>
+            <Text style={styles.actionIcon}>💻</Text>
+            <View>
+               <Text style={styles.actionText}>Take CBT Exam</Text>
+               <Text style={styles.subText}>(Multiple Choice & Fill-in-gap)</Text>
+            </View>
+          </TouchableOpacity>
+        )}
 
-        {/* 3. CBT Exam Button (Forces the engine into MCQ Mode) */}
-        <TouchableOpacity style={styles.actionCard} onPress={() => router.push(`/mock/${id}` as any)}>
-          <Text style={styles.actionIcon}>💻</Text>
-          <View>
-             <Text style={styles.actionText}>CBT Mock Exam</Text>
-             <Text style={styles.subText}>(Multiple Choice)</Text>
-          </View>
-        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
