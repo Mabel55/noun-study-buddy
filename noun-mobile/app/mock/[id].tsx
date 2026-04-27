@@ -47,63 +47,52 @@ export default function MockExamEngine() {
   const fetchQuestions = async () => {
     try {
       const cleanId = String(id).split('?')[0];
-      // 👉 FIX 1: Expo Router sometimes hides 'format' inside the ID string
       const isPOP = format === 'POP' || String(id).includes('format=POP');
+      let allQuestions = [];
 
-      let allQuestions: any[] = [];
+      // 🛡️ THE BULLETPROOF HELPER: This will NEVER crash, no matter what Django sends.
+      const fetchAndFilter = async (url, type) => {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) return [];
+          const data = await res.json();
+          
+          // Safely handle both flat arrays AND paginated Django responses
+          let rawList = Array.isArray(data) ? data : (data.results || []);
+          if (!Array.isArray(rawList)) return [];
 
+          // Safely filter out bad items without crashing
+          const filteredList = rawList.filter(q => {
+            if (!q || typeof q !== 'object') return false;
+            // Checks both naming styles just in case
+            const cId = String(q.course || q.course_id || '');
+            return cId === cleanId;
+          });
+
+          // Tag it so the UI knows to show the A/B/C/D buttons or Text Box
+          return filteredList.map(q => ({ ...q, qType: type }));
+        } catch (e) {
+          console.error(`Error filtering ${type}:`, e);
+          return []; // Returns empty instead of crashing the whole app
+        }
+      };
+
+      // 🚀 Fetch the exact data based on what the student clicked
       if (isPOP) {
-        // Fetch POP theory questions
-        const popRes = await fetch(
-          `${BASE_URL}/api/pop-questions/?course_id=${cleanId}`
-        );
-        if (popRes.ok) {
-          const popData = await popRes.json();
-          const popQ = Array.isArray(popData)
-            ? popData
-                // 👉 FIX 2: Safety Filter! Deletes questions that don't belong here
-                .filter((q: any) => String(q.course) === cleanId || String(q.course_id) === cleanId)
-                .map((q: any) => ({ ...q, qType: 'POP' }))
-            : [];
-          allQuestions = [...allQuestions, ...popQ];
-        }
+        const popQ = await fetchAndFilter(`${BASE_URL}/api/pop-questions/?course_id=${cleanId}`, 'POP');
+        const fillQ = await fetchAndFilter(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL');
+        allQuestions = [...popQ, ...fillQ];
       } else {
-        // Fetch MCQ questions
-        const mcqRes = await fetch(
-          `${BASE_URL}/api/questions/?course_id=${cleanId}`
-        );
-        if (mcqRes.ok) {
-          const mcqData = await mcqRes.json();
-          const mcqQ = Array.isArray(mcqData)
-            ? mcqData
-                // 👉 FIX 2: Safety Filter! Deletes questions that don't belong here
-                .filter((q: any) => String(q.course) === cleanId || String(q.course_id) === cleanId)
-                .map((q: any) => ({ ...q, qType: 'CBT' }))
-            : [];
-          allQuestions = [...allQuestions, ...mcqQ];
-        }
-      }
-
-      // Always fetch fill-in-gap for both CBT and POP
-      const fillRes = await fetch(
-        `${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`
-      );
-      if (fillRes.ok) {
-        const fillData = await fillRes.json();
-        const fillQ = Array.isArray(fillData)
-          ? fillData
-              // 👉 FIX 2: Safety Filter! Deletes questions that don't belong here
-              .filter((q: any) => String(q.course) === cleanId || String(q.course_id) === cleanId)
-              .map((q: any) => ({ ...q, qType: 'FILL' }))
-          : [];
-        allQuestions = [...allQuestions, ...fillQ];
+        const mcqQ = await fetchAndFilter(`${BASE_URL}/api/questions/?course_id=${cleanId}`, 'CBT');
+        const fillQ = await fetchAndFilter(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL');
+        allQuestions = [...mcqQ, ...fillQ];
       }
 
       setQuestions(allQuestions);
       setLoading(false);
     } catch (err) {
-      console.error('Fetch error:', err);
-      setError('Failed to load questions. Check your connection.');
+      console.error('Fatal Fetch error:', err);
+      setError('Failed to load questions. Please check your connection.');
       setLoading(false);
     }
   };
