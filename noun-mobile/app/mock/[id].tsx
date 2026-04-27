@@ -43,84 +43,70 @@ export default function MockExamEngine() {
   // 🚀 YOUR FIX: Stops the questions from multiplying on re-renders!
   const hasFetched = useRef(false);
 
+  // 🚀 YOUR FIX: Stops the questions from multiplying on re-renders!
+  const hasFetched = useRef(false);
+
   useEffect(() => {
     if (id && !hasFetched.current) {
       hasFetched.current = true;
       fetchQuestions();
     }
   }, [id, format]);
+
+  // 🚀 YOUR ORIGINAL WORKING FETCH LOGIC
   const fetchQuestions = async () => {
     try {
       const cleanId = String(id).split('?')[0];
       const isPOP = format === 'POP' || String(id).includes('format=POP');
+
       let allQuestions: any[] = [];
 
-      let allowedCBT: any[] = [];
-      let allowedPOP: any[] = [];
-      let allowedFILL: any[] = [];
-
-      try {
-        const courseRes = await fetch(`${BASE_URL}/api/courses/${cleanId}/`);
-        if (courseRes.ok) {
-          const courseData = await courseRes.json();
-          const extractIds = (arr: any) => Array.isArray(arr) ? arr.map((item: any) => typeof item === 'object' ? item.id : item) : [];
-          allowedCBT = extractIds(courseData.cbt_questions);
-          allowedPOP = extractIds(courseData.pop_questions);
-          allowedFILL = extractIds(courseData.fill_questions);
-        }
-      } catch (e) {
-        console.log("Could not fetch master course data", e);
-      }
-
-      const fetchSafe = async (url: string, type: string, allowedIds: any[]) => {
-        try {
-          const res = await fetch(url);
-          if (!res.ok) return [];
-
-          const contentType = res.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) return [];
-
-          const data = await res.json();
-          const rawList = Array.isArray(data) ? data : (data.results || []);
-
-          return rawList
-            .filter((q: any) => {
-              if (!q || typeof q !== 'object') return false;
-
-              if (allowedIds && allowedIds.length > 0) {
-                return allowedIds.includes(q.id);
-              }
-
-              // 🚀 THE POP FIX: If we fetched from a URL that has the course ID built right into it,
-              // we don't need to look for a course label. It is guaranteed to be safe!
-              if (url.includes(`/courses/${cleanId}/`)) {
-                return true; 
-              }
-
-              const cId = String(q.course?.id || q.course || q.course_id);
-              return cId === String(cleanId) && cId !== 'undefined';
-            })
-            .map((q: any) => ({ ...q, qType: type }));
-        } catch (e) {
-          console.log(`Silently skipped broken URL: ${url}`, e);
-          return [];
-        }
-      };
-
       if (isPOP) {
-        const popQ = await fetchSafe(`${BASE_URL}/api/courses/${cleanId}/pop-questions/`, 'POP', allowedPOP);
-        const fillQ = await fetchSafe(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL', allowedFILL);
-        allQuestions = [...popQ, ...fillQ];
+        // POP exam — fetch theory questions
+        const popRes = await fetch(`${BASE_URL}/api/courses/${cleanId}/pop-questions/`);
+        if (popRes.ok) {
+          const popData = await popRes.json();
+          const popQ = Array.isArray(popData)
+            ? popData.map((q: any) => ({ ...q, qType: 'POP' }))
+            : [];
+          allQuestions = [...allQuestions, ...popQ];
+        }
+
+        // Also fetch fill-in-gap
+        const fillRes = await fetch(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`);
+        if (fillRes.ok) {
+          const fillData = await fillRes.json();
+          const fillQ = Array.isArray(fillData)
+            ? fillData.map((q: any) => ({ ...q, qType: 'FILL' }))
+            : [];
+          allQuestions = [...allQuestions, ...fillQ];
+        }
       } else {
-        const mcqQ = await fetchSafe(`${BASE_URL}/api/questions/?course_id=${cleanId}`, 'CBT', allowedCBT);
-        const fillQ = await fetchSafe(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL', allowedFILL);
-        allQuestions = [...mcqQ, ...fillQ];
+        // CBT exam — fetch MCQ questions
+        const mcqRes = await fetch(`${BASE_URL}/api/questions/?course_id=${cleanId}`);
+        if (mcqRes.ok) {
+          const mcqData = await mcqRes.json();
+          const mcqQ = Array.isArray(mcqData)
+            ? mcqData.map((q: any) => ({ ...q, qType: 'CBT' }))
+            : [];
+          allQuestions = [...allQuestions, ...mcqQ];
+        }
+
+        // Also fetch fill-in-gap for CBT
+        const fillRes = await fetch(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`);
+        if (fillRes.ok) {
+          const fillData = await fillRes.json();
+          const fillQ = Array.isArray(fillData)
+            ? fillData.map((q: any) => ({ ...q, qType: 'FILL' }))
+            : [];
+          allQuestions = [...allQuestions, ...fillQ];
+        }
       }
 
       setQuestions(allQuestions);
       setLoading(false);
     } catch (err) {
-      console.error('Outer Fetch error:', err);
+      console.error('Fetch error:', err);
       setError('Failed to load questions. Check your connection.');
       setLoading(false);
     }
