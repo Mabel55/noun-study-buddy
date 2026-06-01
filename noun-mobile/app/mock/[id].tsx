@@ -46,49 +46,69 @@ export default function MockExamEngine() {
     setRevealed({});
   }, [cleanId, isStudyMode, isPopFormat]);
 
-  // 4. THE SAFE FETCHER
   useEffect(() => {
-    let isMounted = true;
-    if (!cleanId) return;
+  let isMounted = true;
+  if (!cleanId) return;
 
-    const fetchQuestions = async () => {
-      setLoading(true);
-      try {
-        const getData = async (url: string, type: string) => {
-          try {
-            const res = await fetch(url);
-            if (!res.ok) return [];
-            const data = await res.json();
-            const list = Array.isArray(data) ? data : (data.results || []);
-            return list.map((q: any) => ({ ...q, qType: type }));
-          } catch (e) { return []; }
-        };
+  const fetchQuestions = async () => {
+    setLoading(true);
+    try {
+      // ✅ STEP 1: Get course exam_type from DB (source of truth)
+      const courseRes = await fetch(`${BASE_URL}/api/courses/${cleanId}/`);
+      const courseData = await courseRes.json();
+      const examType: string = courseData?.exam_type || 'CBT'; // "CBT" or "POP"
 
+      const getData = async (url: string, type: string) => {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) return [];
+          const data = await res.json();
+          const list = Array.isArray(data) ? data : (data.results || []);
+          return list.map((q: any) => ({ ...q, qType: type }));
+        } catch (e) { return []; }
+      };
+
+      // ✅ STEP 2: Fetch only what's needed based on exam type
+      let all: any[] = [];
+
+      if (isStudyMode) {
+        // Study mode always gets everything
         const [mcqs, fills, pops] = await Promise.all([
           getData(`${BASE_URL}/api/questions/?course_id=${cleanId}`, 'CBT'),
           getData(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL'),
-          getData(`${BASE_URL}/api/pop-questions/?course_id=${cleanId}`, 'POP')
+          getData(`${BASE_URL}/api/pop-questions/?course_id=${cleanId}`, 'POP'),
         ]);
+        all = [...mcqs, ...fills, ...pops];
 
-        if (!isMounted) return;
+      } else if (examType === 'CBT') {
+        // CBT exam: MCQ + fill-in-gaps only
+        const [mcqs, fills] = await Promise.all([
+          getData(`${BASE_URL}/api/questions/?course_id=${cleanId}`, 'CBT'),
+          getData(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL'),
+        ]);
+        all = [...mcqs, ...fills];
 
-        let all = [];
-        if (isStudyMode) {
-          all = [...mcqs, ...fills, ...pops]; // Study gets EVERYTHING
-        } else {
-          all = isPopFormat ? [...pops, ...fills] : [...mcqs, ...fills]; // Exam respects the format
-        }
-
-        setQuestions(all);
-        setLoading(false);
-      } catch (err) {
-        if (isMounted) setLoading(false);
+      } else {
+        // POP exam: theory + fill-in-gaps only, NO MCQ
+        const [fills, pops] = await Promise.all([
+          getData(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL'),
+          getData(`${BASE_URL}/api/pop-questions/?course_id=${cleanId}`, 'POP'),
+        ]);
+        all = [...fills, ...pops];
       }
-    };
 
-    fetchQuestions();
-    return () => { isMounted = false; };
-  }, [cleanId, isStudyMode, isPopFormat]);
+      if (!isMounted) return;
+      setQuestions(all);
+      setLoading(false);
+
+    } catch (err) {
+      if (isMounted) setLoading(false);
+    }
+  };
+
+  fetchQuestions();
+  return () => { isMounted = false; };
+}, [cleanId, isStudyMode]); // ✅ isPopFormat removed — DB is the source of truth
 
   // 5. THE TIMER
   useEffect(() => {

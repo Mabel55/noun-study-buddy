@@ -3,17 +3,17 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaVi
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 export default function ExamPreviewPage() {
-  // Grab the ID and the format (if the user selected POP earlier)
   const { id, format } = useLocalSearchParams();
   const router = useRouter();
 
+  // ✅ Added <any> to prevent the type 'never' error
   const [courseData, setCourseData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const cleanId = String(id).split('?')[0];
 
-    // 👉 NO "-1" IN THIS URL! Connecting directly to the live backend.
+    // Fetching from the live backend
     fetch(`https://noun-study-buddy.onrender.com/api/courses/${cleanId}/`)
       .then((res) => res.json())
       .then((data) => {
@@ -26,6 +26,7 @@ export default function ExamPreviewPage() {
       });
   }, [id]);
 
+  // ✅ Wrapped the loading spinner in an 'if' statement so it doesn't end the whole function
   if (loading) {
     return (
       <View style={styles.center}>
@@ -34,13 +35,14 @@ export default function ExamPreviewPage() {
     );
   }
 
-  // Check if this is a POP exam request
-  const isPOP = format === 'POP' || String(id).includes('format=POP');
+  // ✅ Trust the DATABASE, not the URL param
+  const examType = courseData?.exam_type; // "CBT" or "POP"
+  const isPOP = courseData?.exam_type === 'POP';
+  const cleanId = String(id).split('?')[0];
 
-  // Count the questions accurately based on the format requested
+  // Fix the question counts
   const cbtCount = courseData?.cbt_questions?.length || 0;
   const popCount = (courseData?.pop_questions?.length || 0) + (courseData?.fill_questions?.length || 0);
-  
   const displayCount = isPOP ? popCount : cbtCount;
 
   return (
@@ -59,9 +61,8 @@ export default function ExamPreviewPage() {
           <TouchableOpacity
             style={styles.startButton}
             onPress={() => {
-              // Pushes the student to the actual questions, keeping the POP format attached!
-              const nextUrl = isPOP ? `/mock/${id}?format=POP` : `/mock/${id}`;
-              router.push(nextUrl as any);
+              // Pushes the student to the actual questions
+              router.push(`/mock/${cleanId}?format=${examType}`);
             }}
           >
             <Text style={styles.buttonText}>Start {isPOP ? 'POP' : 'Mock'} Exam</Text>
