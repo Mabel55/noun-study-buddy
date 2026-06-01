@@ -6,15 +6,17 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
-# 1. IMPORT ALL YOUR MODELS HERE
-from .models import Course, Question, Summary, MockExam, Purchase
+# 1. IMPORT ALL YOUR MODELS (Added FillInTheGap and PopQuestion)
+from .models import Course, Question, Summary, MockExam, Purchase, FillInTheGap, PopQuestion
 
-# 2. IMPORT ALL YOUR SERIALIZERS HERE
+# 2. IMPORT ALL YOUR SERIALIZERS (Added FillInTheGapSerializer and PopQuestionSerializer)
 from .serializers import (
     CourseSerializer, 
     QuestionSerializer, 
     SummarySerializer, 
-    MockExamSerializer
+    MockExamSerializer,
+    FillInTheGapSerializer,
+    PopQuestionSerializer
 )
 
 # ==========================
@@ -24,23 +26,59 @@ from .serializers import (
 class CourseViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    permission_classes = [AllowAny] # Everyone can see the list of courses
+    permission_classes = [AllowAny]
+
 
 class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Question.objects.all()
     serializer_class = QuestionSerializer
-    # We will refine permissions later so only paid users see this
     permission_classes = [AllowAny] 
+
+    def get_queryset(self):
+        queryset = Question.objects.all()
+        # ✅ Dynamic Filter: Catches either ?course= or ?course_id= from the frontend
+        course_param = self.request.query_params.get('course') or self.request.query_params.get('course_id')
+        if course_param:
+            queryset = queryset.filter(course_id=course_param)
+        return queryset
+
+
+# ✅ Added Fill-In-The-Gaps viewset with dynamic filtering
+class FillInTheGapViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = FillInTheGapSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = FillInTheGap.objects.all()
+        course_param = self.request.query_params.get('course') or self.request.query_params.get('course_id')
+        if course_param:
+            queryset = queryset.filter(course_id=course_param)
+        return queryset
+
+
+# ✅ Added PopQuestion (Theory) viewset with dynamic filtering
+class PopQuestionViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = PopQuestionSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = PopQuestion.objects.all()
+        course_param = self.request.query_params.get('course') or self.request.query_params.get('course_id')
+        if course_param:
+            queryset = queryset.filter(course_id=course_param)
+        return queryset
+
 
 class SummaryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Summary.objects.all()
     serializer_class = SummarySerializer
     permission_classes = [AllowAny]
 
+
 class MockExamViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = MockExam.objects.all()
     serializer_class = MockExamSerializer
     permission_classes = [AllowAny]
+
 
 # ==========================
 # PAYMENT & PROFILE FEATURES
@@ -71,6 +109,7 @@ class VerifyPaymentView(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_purchased_courses(request):
@@ -82,6 +121,7 @@ def my_purchased_courses(request):
     
     # 3. Send it to the app
     return Response({'purchased_course_ids': purchased_ids})
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

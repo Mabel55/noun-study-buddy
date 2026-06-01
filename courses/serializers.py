@@ -43,7 +43,7 @@ class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
         fields = [
-            'id', 'title', 'code', 'description', 'textbook', 
+            'id', 'title', 'code', 'description', 'textbook', 'exam_type',  # 👈 Added 'exam_type' here
             'summaries', 'mock_exams', 
             'cbt_questions', 'pop_questions', 'fill_questions'
         ]
