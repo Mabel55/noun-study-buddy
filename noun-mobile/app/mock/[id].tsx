@@ -14,8 +14,7 @@ export default function MockExamEngine() {
   const params = useLocalSearchParams(); 
   const router = useRouter();
 
-  // 1. BULLETPROOF PARAMETER CHECK
-  // This catches the exact mode whether it's on web or mobile
+  // 1. ROUTING PARAMS
   const urlStr = typeof window !== 'undefined' ? window.location.href : '';
   const isStudyMode = urlStr.includes('mode=study') || params.mode === 'study';
   const isPopFormat = urlStr.includes('format=POP') || params.format === 'POP';
@@ -34,10 +33,9 @@ export default function MockExamEngine() {
   
   const timerRef = useRef<any>(null);
 
-  // 🚀 3. THE MAGIC FIX: FORCE STATE RESET
-  // Because Expo caches pages, we MUST reset everything when the URL changes.
+  // 3. FORCE STATE RESET ON NAVIGATION
   useEffect(() => {
-    setExamStarted(isStudyMode); // Skip start screen ONLY if study mode
+    setExamStarted(isStudyMode); 
     setSubmitted(false);
     setScore(0);
     setTimeLeft(45 * 60);
@@ -46,69 +44,59 @@ export default function MockExamEngine() {
     setRevealed({});
   }, [cleanId, isStudyMode, isPopFormat]);
 
+  // 4. FETCH QUESTIONS BASED ON FORMAT
   useEffect(() => {
-  let isMounted = true;
-  if (!cleanId) return;
+    let isMounted = true;
+    if (!cleanId) return;
 
-  const fetchQuestions = async () => {
-    setLoading(true);
-    try {
-      // ✅ STEP 1: Get course exam_type from DB (source of truth)
-      const courseRes = await fetch(`${BASE_URL}/api/courses/${cleanId}/`);
-      const courseData = await courseRes.json();
-      const examType: string = courseData?.exam_type || 'CBT'; // "CBT" or "POP"
+    const fetchQuestions = async () => {
+      setLoading(true);
+      try {
+        const getData = async (url: string, type: string) => {
+          try {
+            const res = await fetch(url);
+            if (!res.ok) return [];
+            const data = await res.json();
+            const list = Array.isArray(data) ? data : (data.results || []);
+            return list.map((q: any) => ({ ...q, qType: type }));
+          } catch (e) { return []; }
+        };
 
-      const getData = async (url: string, type: string) => {
-        try {
-          const res = await fetch(url);
-          if (!res.ok) return [];
-          const data = await res.json();
-          const list = Array.isArray(data) ? data : (data.results || []);
-          return list.map((q: any) => ({ ...q, qType: type }));
-        } catch (e) { return []; }
-      };
+        let all: any[] = [];
 
-      // ✅ STEP 2: Fetch only what's needed based on exam type
-      let all: any[] = [];
+        if (isPopFormat) {
+          // 300+ Level (POP): Only Theory Questions
+          const [pops] = await Promise.all([
+            getData(`${BASE_URL}/api/pop-questions/?course_id=${cleanId}`, 'POP')
+          ]);
+          all = [...pops];
+        } else {
+          // 100/200 Level (CBT): Multiple Choice & Fill-in-the-gap
+          const [mcqs, fills] = await Promise.all([
+            getData(`${BASE_URL}/api/questions/?course_id=${cleanId}`, 'CBT'),
+            getData(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL')
+          ]);
+          all = [...mcqs, ...fills];
+        }
 
-      if (isStudyMode) {
-        // Study mode always gets everything
-        const [mcqs, fills, pops] = await Promise.all([
-          getData(`${BASE_URL}/api/questions/?course_id=${cleanId}`, 'CBT'),
-          getData(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL'),
-          getData(`${BASE_URL}/api/pop-questions/?course_id=${cleanId}`, 'POP'),
-        ]);
-        all = [...mcqs, ...fills, ...pops];
+        if (!isMounted) return;
+        
+        // Randomize questions for Mock Exams
+        if (!isStudyMode) {
+          all = all.sort(() => Math.random() - 0.5);
+        }
+        
+        setQuestions(all);
+        setLoading(false);
 
-      } else if (examType === 'CBT') {
-        // CBT exam: MCQ + fill-in-gaps only
-        const [mcqs, fills] = await Promise.all([
-          getData(`${BASE_URL}/api/questions/?course_id=${cleanId}`, 'CBT'),
-          getData(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL'),
-        ]);
-        all = [...mcqs, ...fills];
-
-      } else {
-        // POP exam: theory + fill-in-gaps only, NO MCQ
-        const [fills, pops] = await Promise.all([
-          getData(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL'),
-          getData(`${BASE_URL}/api/pop-questions/?course_id=${cleanId}`, 'POP'),
-        ]);
-        all = [...fills, ...pops];
+      } catch (err) {
+        if (isMounted) setLoading(false);
       }
+    };
 
-      if (!isMounted) return;
-      setQuestions(all);
-      setLoading(false);
-
-    } catch (err) {
-      if (isMounted) setLoading(false);
-    }
-  };
-
-  fetchQuestions();
-  return () => { isMounted = false; };
-}, [cleanId, isStudyMode]); // ✅ isPopFormat removed — DB is the source of truth
+    fetchQuestions();
+    return () => { isMounted = false; };
+  }, [cleanId, isPopFormat, isStudyMode]);
 
   // 5. THE TIMER
   useEffect(() => {
@@ -150,7 +138,7 @@ export default function MockExamEngine() {
           <Text style={styles.startTitle}>Timed Mock Exam</Text>
           <Text style={styles.startSub}>45 Minutes | {questions.length} Questions</Text>
           <Text style={{color: '#666', fontWeight: 'bold', marginBottom: 20}}>
-            Format: {isPopFormat ? 'POP (Theory/Fill-in)' : 'CBT (Multiple Choice)'}
+            Format: {isPopFormat ? 'POP (Theory)' : 'CBT (Multiple Choice)'}
           </Text>
           <View style={styles.rules}>
             <Text style={styles.ruleTxt}>• Answers are hidden until submission.</Text>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, 
-  SafeAreaView, ScrollView, StatusBar, Platform 
+  SafeAreaView, ScrollView, StatusBar 
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
@@ -26,10 +26,10 @@ export default function CourseDetails() {
 
   if (loading) return <SafeAreaView style={styles.center}><ActivityIndicator size="large" color={NOUN_GREEN} /></SafeAreaView>;
 
-  // Smart Level Logic
+  // Smart Level Logic: 300 Level and above are Theory (POP)
   const courseCode = courseData?.code || '';
   const firstDigit = courseCode.match(/\d/); 
-  const isPOP = firstDigit && parseInt(firstDigit[0], 10) >= 3;
+  const isAdvanced = firstDigit && parseInt(firstDigit[0], 10) >= 3;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -52,35 +52,47 @@ export default function CourseDetails() {
           <View><Text style={styles.actionTitle}>Read Summary</Text></View>
         </TouchableOpacity>
 
-        {/* 🟢 THE FIX FOR QUESTIONS & ANSWERS: 
-            We do NOT send a format here so it shows BOTH MCQ and Theory! */}
+        {/* 2. QUESTIONS & ANSWERS (Study Mode) */}
         <TouchableOpacity 
           style={styles.actionCard} 
-          onPress={() => router.push(`/mock/${id}?mode=study` as any)}
+          onPress={() => router.push(`/mock/${id}?mode=study&format=${isAdvanced ? 'POP' : 'CBT'}` as any)}
         >
           <View style={[styles.iconCircle, {backgroundColor: '#e3f2fd'}]}>
             <Text style={{fontSize: 24}}>💡</Text>
           </View>
           <View>
             <Text style={styles.actionTitle}>Questions and Answers</Text>
-            <Text style={{fontSize: 12, color: '#666'}}>Study Mode • All types shown</Text>
+            <Text style={{fontSize: 12, color: '#666'}}>
+              {isAdvanced ? 'Theory Questions (300L+)' : 'Multiple Choice & Fill-in (100L-200L)'}
+            </Text>
           </View>
         </TouchableOpacity>
 
-        {/* 🔴 THE TIMED MOCK: 
-            This keeps the strict format (POP or CBT) and the timer! */}
-        <TouchableOpacity 
-          style={styles.actionCard} 
-          onPress={() => router.push(`/mock/${id}?mode=exam&format=${isPOP ? 'POP' : 'CBT'}` as any)}
-        >
-          <View style={[styles.iconCircle, {backgroundColor: '#fff3e0'}]}>
-            <Text style={{fontSize: 24}}>⏱️</Text>
+        {/* 3. THE TIMED MOCK EXAM */}
+        {!isAdvanced ? (
+          <TouchableOpacity 
+            style={styles.actionCard} 
+            onPress={() => router.push(`/mock/${id}?mode=exam&format=CBT` as any)}
+          >
+            <View style={[styles.iconCircle, {backgroundColor: '#fff3e0'}]}>
+              <Text style={{fontSize: 24}}>⏱️</Text>
+            </View>
+            <View>
+              <Text style={styles.actionTitle}>Take Timed Mock Exam</Text>
+              <Text style={{fontSize: 12, color: '#666'}}>Standard CBT Format</Text>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <View style={[styles.actionCard, { backgroundColor: '#f0f0f0', elevation: 0 }]}>
+             <View style={[styles.iconCircle, {backgroundColor: '#e0e0e0'}]}>
+               <Text style={{fontSize: 24, opacity: 0.4}}>⏱️</Text>
+             </View>
+             <View>
+               <Text style={[styles.actionTitle, {color: '#999'}]}>Take Timed Mock Exam</Text>
+               <Text style={{fontSize: 12, color: '#c62828', marginTop: 2}}>Not available for 300+ level (POP)</Text>
+             </View>
           </View>
-          <View>
-            <Text style={styles.actionTitle}>Take Timed Mock Exam</Text>
-            <Text style={{fontSize: 12, color: '#666'}}>{isPOP ? 'POP Format' : 'CBT Format'}</Text>
-          </View>
-        </TouchableOpacity>
+        )}
 
       </ScrollView>
     </SafeAreaView>
@@ -91,6 +103,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9f8' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { padding: 25, backgroundColor: NOUN_GREEN, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, paddingTop: 50 },
+  backButton: { marginBottom: 15 },
   backText: { color: 'white', fontWeight: 'bold' },
   courseCode: { fontSize: 32, fontWeight: 'bold', color: '#fff' },
   courseTitle: { color: '#e0e0e0', fontSize: 16 },
