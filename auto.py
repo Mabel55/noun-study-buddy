@@ -32,6 +32,7 @@ import sys
 import json
 import time
 import django
+# pyrefly: ignore [missing-import]
 import fitz  # PyMuPDF
 from dotenv import load_dotenv
 
@@ -45,6 +46,7 @@ django.setup()
 
 from fpdf import FPDF
 from django.conf import settings
+# pyrefly: ignore [missing-import]
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 
@@ -578,20 +580,20 @@ def create_summary_pdf(course_code: str, course_title: str, summary_text: str) -
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Arial", style="B", size=20)
     pdf.set_xy(10, 10)
-    pdf.cell(0, 10, txt="NOUN STUDY BUDDY", ln=True, align="C")
+    pdf.cell(0, 10, "NOUN STUDY BUDDY", ln=True, align="C")
     pdf.set_font("Arial", style="B", size=14)
     pdf.set_xy(10, 22)
-    pdf.cell(0, 8, txt=f" Study Summary: {course_code}", ln=True, align="C")
+    pdf.cell(0, 8, f" Study Summary: {course_code}", ln=True, align="C")
     pdf.set_font("Arial", size=11)
     pdf.set_xy(10, 32)
-    pdf.cell(0, 8, txt=course_title, ln=True, align="C")
+    pdf.cell(0, 8, course_title, ln=True, align="C")
 
     # Body
     pdf.set_text_color(0, 0, 0)
     pdf.set_xy(10, 55)
     pdf.set_font("Arial", size=11)
     safe_text = summary_text.encode("latin-1", "replace").decode("latin-1")
-    pdf.multi_cell(0, 7, txt=safe_text)
+    pdf.multi_cell(0, 7, safe_text)
 
     # Save
     filename = f"Summary_{course_code}.pdf"
@@ -631,7 +633,10 @@ def process_pdf(full_pdf_path: str, filename: str):
 
     course, created = Course.objects.update_or_create(
         code=course_code,
-        defaults={"title": course_title}
+        defaults={
+            "title": course_title,
+            "exam_type": exam_type,
+        }
     )
     print(f"  Course {'created' if created else 'updated'}: {course_code}")
 

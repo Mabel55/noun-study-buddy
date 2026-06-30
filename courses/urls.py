@@ -16,7 +16,7 @@ from .views import (
 
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet)
-router.register(r'questions', QuestionViewSet)
+router.register(r'questions', QuestionViewSet, basename='questions')
 router.register(r'fill-in-gaps', FillInTheGapViewSet, basename='fill-in-gaps')  # 👈 Registered here
 router.register(r'pop-questions', PopQuestionViewSet, basename='pop-questions')  # 👈 Registered here
 router.register(r'summaries', SummaryViewSet)

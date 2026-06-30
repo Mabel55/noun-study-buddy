@@ -119,9 +119,19 @@ export default function MockExamEngine() {
     if (timerRef.current) clearInterval(timerRef.current);
     let s = 0;
     questions.forEach(q => {
-      const ans = (selectedAnswers[q.id] || '').trim().toLowerCase();
-      const correct = (q.correct_answer || q.fill_answer || q.answer_text || '').trim().toLowerCase();
-      if (ans === correct && ans !== '') s++;
+      const userAnswer = (selectedAnswers[q.id] || '').trim().toLowerCase();
+      if (!userAnswer) return; // Skip unanswered
+
+      if (q.qType === 'CBT') {
+        // CBT: selectedAnswers stores 'a','b','c','d' — correct_answer is 'A','B','C','D'
+        const correctLetter = (q.correct_answer || '').trim().toLowerCase();
+        if (userAnswer === correctLetter) s++;
+      } else if (q.qType === 'FILL') {
+        // Fill-in-gap: compare typed text with correct_answer
+        const correctText = (q.correct_answer || '').trim().toLowerCase();
+        if (userAnswer === correctText) s++;
+      }
+      // POP (theory) questions are not auto-graded
     });
     setScore(s);
     setSubmitted(true);
@@ -170,7 +180,10 @@ export default function MockExamEngine() {
   const currentQ = questions[currentIndex];
   const qId = String(currentQ?.id);
   const isCBT = currentQ?.qType === 'CBT';
-  const showAnswer = revealed[qId] || isStudyMode;
+  const isFill = currentQ?.qType === 'FILL';
+  // In study mode, show answer AFTER student selects (for CBT) or always (for theory)
+  const hasAnswered = !!selectedAnswers[qId];
+  const showAnswer = revealed[qId] || (isStudyMode && (hasAnswered || currentQ?.qType === 'POP'));
 
   return (
     <SafeAreaView style={styles.container}>
@@ -191,23 +204,34 @@ export default function MockExamEngine() {
         <View style={styles.questionCard}>
           <Text style={styles.qText}>{currentQ?.question_text || currentQ?.text}</Text>
 
-          {isCBT && ['a', 'b', 'c', 'd'].map(l => (
-            <TouchableOpacity 
-              key={l}
-              style={[
-                styles.opt, 
-                selectedAnswers[qId] === l && styles.optSelected,
-                isStudyMode && l === (currentQ.correct_answer||'').toLowerCase() && styles.optCorrect
-              ]}
-              onPress={() => !showAnswer && setSelectedAnswers({...selectedAnswers, [qId]: l})}
-              disabled={showAnswer && !isStudyMode}
-            >
-              <View style={[styles.letterBox, selectedAnswers[qId] === l && {backgroundColor: NOUN_GREEN}]}>
-                <Text style={{color: selectedAnswers[qId] === l ? '#fff' : '#333'}}>{l.toUpperCase()}</Text>
-              </View>
-              <Text style={{flex: 1}}>{currentQ[`option_${l}`]}</Text>
-            </TouchableOpacity>
-          ))}
+          {isCBT && ['a', 'b', 'c', 'd'].map(l => {
+            const isSelected = selectedAnswers[qId] === l;
+            const isCorrect = l === (currentQ.correct_answer || '').toLowerCase();
+            const showCorrectHighlight = showAnswer && isCorrect;
+            const showWrongHighlight = showAnswer && isSelected && !isCorrect;
+            return (
+              <TouchableOpacity 
+                key={l}
+                style={[
+                  styles.opt, 
+                  isSelected && styles.optSelected,
+                  showCorrectHighlight && styles.optCorrect,
+                  showWrongHighlight && { borderColor: '#c62828', backgroundColor: '#ffebee' },
+                ]}
+                onPress={() => {
+                  if (!hasAnswered || !isStudyMode) {
+                    setSelectedAnswers({...selectedAnswers, [qId]: l});
+                  }
+                }}
+                disabled={showAnswer && !isStudyMode}
+              >
+                <View style={[styles.letterBox, isSelected && {backgroundColor: NOUN_GREEN}]}>
+                  <Text style={{color: isSelected ? '#fff' : '#333'}}>{l.toUpperCase()}</Text>
+                </View>
+                <Text style={{flex: 1}}>{currentQ[`option_${l}`]}</Text>
+              </TouchableOpacity>
+            );
+          })}
 
           {!isCBT && (
             <TextInput 
@@ -222,7 +246,11 @@ export default function MockExamEngine() {
           {showAnswer && (
             <View style={styles.ansBox}>
               <Text style={styles.ansLabel}>Correct Answer:</Text>
-              <Text style={styles.ansText}>{currentQ?.correct_answer || currentQ?.fill_answer || currentQ?.answer_text}</Text>
+              <Text style={styles.ansText}>
+                {isCBT 
+                  ? `${(currentQ?.correct_answer || '').toUpperCase()}. ${currentQ?.[`option_${(currentQ?.correct_answer || 'a').toLowerCase()}`] || ''}`
+                  : (currentQ?.correct_answer || currentQ?.answer_text || 'N/A')}
+              </Text>
             </View>
           )}
 

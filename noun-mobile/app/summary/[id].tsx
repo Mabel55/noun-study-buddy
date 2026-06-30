@@ -23,27 +23,35 @@ export default function SummaryPage() {
     return <ActivityIndicator size="large" color="#006400" style={{ marginTop: 50 }} />;
   }
 
-  // Django might call the list "summaries", "course_summaries", or something else depending on your models
-  const summaries = courseData?.summaries || courseData?.course_summaries || [];
+  // Handle case where no summary exists (API returns error object)
+  const hasError = courseData?.detail || !courseData?.title;
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{courseData.title}</Text>
+        <Text style={styles.headerTitle}>{courseData?.title || 'Course Summary'}</Text>
       </View>
 
       <ScrollView style={styles.contentContainer}>
-  {/* We tell Markdown to apply your summaryText style to its 'body' text */}
-  <Markdown style={{ body: styles.summaryText }}>
-    {courseData?.content || "No summary available for this course yet."}
-  </Markdown>
-</ScrollView>
-      <TouchableOpacity 
-        style={styles.downloadButton} 
-        onPress={() => Linking.openURL(courseData.file)}
-      >
-        <Text style={styles.downloadText}>📥 Download Full PDF</Text>
-      </TouchableOpacity>
+        {hasError ? (
+          <Text style={{ fontSize: 16, color: '#666', textAlign: 'center', marginTop: 30 }}>
+            {courseData?.detail || "No summary available for this course yet."}
+          </Text>
+        ) : (
+          <Markdown style={{ body: styles.summaryText }}>
+            {courseData?.content || "No summary content available yet."}
+          </Markdown>
+        )}
+      </ScrollView>
+
+      {courseData?.file ? (
+        <TouchableOpacity 
+          style={styles.downloadButton} 
+          onPress={() => Linking.openURL(courseData.file)}
+        >
+          <Text style={styles.downloadText}>📥 Download Full PDF</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }

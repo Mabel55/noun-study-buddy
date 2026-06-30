@@ -26,10 +26,14 @@ export default function CourseDetails() {
 
   if (loading) return <SafeAreaView style={styles.center}><ActivityIndicator size="large" color={NOUN_GREEN} /></SafeAreaView>;
 
-  // Smart Level Logic: 300 Level and above are Theory (POP)
+  // Use the exam_type from the API (backend handles GST/ENT/CLA rules correctly)
+  // Fallback to level detection if exam_type is missing
   const courseCode = courseData?.code || '';
   const firstDigit = courseCode.match(/\d/); 
-  const isAdvanced = firstDigit && parseInt(firstDigit[0], 10) >= 3;
+  const fallbackIsAdvanced = firstDigit && parseInt(firstDigit[0], 10) >= 3;
+  const isAdvanced = courseData?.exam_type 
+    ? courseData.exam_type === 'POP' 
+    : fallbackIsAdvanced;
 
   return (
     <SafeAreaView style={styles.container}>

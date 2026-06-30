@@ -3,6 +3,11 @@ from django.contrib.auth.models import User
 
 # 1. The Course Table (Holds Title, Code, Price, Textbook)
 class Course(models.Model):
+    EXAM_TYPE_CHOICES = [
+        ('CBT', 'Computer-Based Test (100-200 Level)'),
+        ('POP', 'Pen-On-Paper (300+ Level)'),
+    ]
+
     title = models.CharField(max_length=200)
     code = models.CharField(max_length=20)  # e.g., MTH101
     description = models.TextField(null=True, blank=True)
@@ -10,6 +15,8 @@ class Course(models.Model):
     textbook = models.FileField(upload_to='textbooks/', blank=True, null=True)
     # The price in Naira (0 = Free)
     price = models.IntegerField(default=0)
+    # CBT for 100-200 level, POP for 300+ level
+    exam_type = models.CharField(max_length=3, choices=EXAM_TYPE_CHOICES, default='CBT')
 
     def __str__(self):
         return f"{self.code} - {self.title}"

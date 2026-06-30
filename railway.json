@@ -5,4 +5,4 @@
   "deploy": {
     "startCommand": "python manage.py migrate --noinput && gunicorn config.wsgi --timeout 600"
   }
-}``
+}
