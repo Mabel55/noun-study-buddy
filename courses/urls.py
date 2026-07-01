@@ -22,6 +22,7 @@ from .dashboard_views import (
 )
 
 from .ai_views import chat_with_tutor
+from .planner_views import exam_planner
 
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet)
@@ -52,4 +53,7 @@ urlpatterns = [
 
     # Phase 4: AI Features
     path('chat/', chat_with_tutor, name='chat_with_tutor'),
+
+    # Phase 5: Planner
+    path('planner/', exam_planner, name='exam_planner'),
 ]

@@ -162,3 +162,17 @@ class UserBadge(models.Model):
 
     def __str__(self):
         return f"{self.user.username} earned {self.badge.name}"
+
+
+# ==============================================================================
+# PHASE 5: PLANNING & EXAM SCHEDULE
+# ==============================================================================
+
+class ExamSchedule(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    exam_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course.code} on {self.exam_date}"

@@ -30,7 +30,14 @@ export default function ProfileScreen() {
             <Text style={[styles.name, { color: colors.text }]}>
               {user?.first_name || user?.username || 'Student'}
             </Text>
-            <Text style={[styles.email, { color: colors.textSecondary }]}>{user?.email}</Text>
+            <Text style={[styles.email, { color: colors.textSecondary, marginBottom: 12 }]}>{user?.email}</Text>
+            
+            <View style={[styles.premiumBadge, { backgroundColor: '#ffd700' }]}>
+              <Text style={{ fontWeight: 'bold', color: '#000' }}>👑 Free Plan</Text>
+            </View>
+            <TouchableOpacity style={{ marginTop: 10 }}>
+              <Text style={{ color: colors.accent, fontWeight: 'bold' }}>Upgrade to Premium →</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View style={[styles.card, { backgroundColor: colors.card }]}>
@@ -100,4 +107,5 @@ const styles = StyleSheet.create({
   toggle: { width: 48, height: 28, borderRadius: 14, padding: 3, justifyContent: 'center' },
   toggleDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
   logoutBtn: { marginTop: 30, padding: 16, borderRadius: 14, borderWidth: 2, alignItems: 'center' },
+  premiumBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, marginTop: 4 },
 });
