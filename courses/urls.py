@@ -14,6 +14,13 @@ from .views import (
     get_summary_by_course
 )
 
+from .dashboard_views import (
+    submit_exam_attempt,
+    get_dashboard,
+    get_weak_areas,
+    get_leaderboard,
+)
+
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet)
 router.register(r'questions', QuestionViewSet, basename='questions')
@@ -34,4 +41,10 @@ urlpatterns = [
     
     # This is the door for the APP to check "What summaries do I have for this course?"
     path('summaries/course/<int:course_id>/', get_summary_by_course, name='get_summary_by_course'),
+
+    # Phase 2: Dashboard & Progress Tracking
+    path('attempts/', submit_exam_attempt, name='submit_attempt'),
+    path('dashboard/', get_dashboard, name='dashboard'),
+    path('weak-areas/', get_weak_areas, name='weak_areas'),
+    path('leaderboard/', get_leaderboard, name='leaderboard'),
 ]

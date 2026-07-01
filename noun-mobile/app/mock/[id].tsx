@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 const BASE_URL = 'https://noun-study-buddy.onrender.com';
 
@@ -111,23 +112,64 @@ export default function MockExamEngine() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [examStarted, submitted, isStudyMode]);
 
-  const submitExam = () => {
+  const { isLoggedIn, token } = useAuth(); // ADD THIS to access auth
+
+  const submitExam = async () => {
     if (timerRef.current) clearInterval(timerRef.current);
     let s = 0;
+    const questionResults: any[] = [];
+
     questions.forEach(q => {
       const userAnswer = (selectedAnswers[q.id] || '').trim().toLowerCase();
-      if (!userAnswer) return;
+      let isCorrect = false;
 
-      if (q.qType === 'CBT') {
+      if (!userAnswer) {
+        // Did not answer
+      } else if (q.qType === 'CBT') {
         const correctLetter = (q.correct_answer || '').trim().toLowerCase();
-        if (userAnswer === correctLetter) s++;
+        if (userAnswer === correctLetter) {
+          s++;
+          isCorrect = true;
+        }
       } else if (q.qType === 'FILL') {
         const correctText = (q.correct_answer || '').trim().toLowerCase();
-        if (userAnswer === correctText) s++;
+        if (userAnswer === correctText) {
+          s++;
+          isCorrect = true;
+        }
       }
+
+      questionResults.push({
+        question_id: q.id,
+        question_type: q.qType,
+        is_correct: isCorrect
+      });
     });
+
     setScore(s);
     setSubmitted(true);
+
+    // If logged in and not in study mode, save progress to backend
+    if (isLoggedIn && token && !isStudyMode) {
+      try {
+        await fetch(`${BASE_URL}/api/attempts/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Token ${token}`
+          },
+          body: JSON.stringify({
+            course_id: cleanId,
+            score: s,
+            total_questions: questions.length,
+            time_taken_seconds: (45 * 60) - timeLeft,
+            question_results: questionResults
+          })
+        });
+      } catch (err) {
+        console.error('Failed to save exam attempt:', err);
+      }
+    }
   };
 
   if (loading) return <SafeAreaView style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.accent} /></SafeAreaView>;

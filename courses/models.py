@@ -89,3 +89,76 @@ class Purchase(models.Model):
 
     def __str__(self):
         return f"{self.user.username} bought {self.course.code}"
+
+
+# ==============================================================================
+# PHASE 2: PROGRESS TRACKING & GAMIFICATION
+# ==============================================================================
+
+# 6. User Profile (Extended user data, XP, level)
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    xp_points = models.IntegerField(default=0)
+    level = models.IntegerField(default=1)
+    matric_number = models.CharField(max_length=30, blank=True, default='')
+
+    def __str__(self):
+        return f"{self.user.username} - Level {self.level} ({self.xp_points} XP)"
+
+
+# 7. Exam Attempt (Tracks every mock exam a student takes)
+class ExamAttempt(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    score = models.IntegerField()
+    total_questions = models.IntegerField()
+    percentage = models.FloatField()
+    time_taken_seconds = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course.code}: {self.score}/{self.total_questions}"
+
+
+# 8. Study Streak (Tracks consecutive study days)
+class StudyStreak(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='streak')
+    current_streak = models.IntegerField(default=0)
+    longest_streak = models.IntegerField(default=0)
+    last_study_date = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.current_streak} day streak"
+
+
+# 9. Question Attempt (Tracks individual question results for weak area detection)
+class QuestionAttempt(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    question_id = models.IntegerField()  # ID of the question (from any type)
+    question_type = models.CharField(max_length=4, choices=[('CBT','CBT'),('FILL','FILL'),('POP','POP')])
+    is_correct = models.BooleanField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - Q{self.question_id} {'✓' if self.is_correct else '✗'}"
+
+
+# 10. Badge (Achievement definitions)
+class Badge(models.Model):
+    name = models.CharField(max_length=100)
+    icon = models.CharField(max_length=10)  # emoji like 🥇, 🔥
+    description = models.TextField()
+
+    def __str__(self):
+        return f"{self.icon} {self.name}"
+
+
+# 11. UserBadge (Badges earned by a student)
+class UserBadge(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    badge = models.ForeignKey(Badge, on_delete=models.CASCADE)
+    earned_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} earned {self.badge.name}"
