@@ -55,8 +55,8 @@ from courses.models import Course, Summary, Question, FillInTheGap, PopQuestion
 # ── LLM Setup ─────────────────────────────────────────────────────────────────
 # Free at https://console.groq.com — 14,400 requests/day
 llm = ChatGroq(
-    model="mixtral-8x7b-32768",
-    temperature=0.3,
+    model="llama-3.1-8b-instant",
+    temperature=0.1,
     max_tokens=4000,
     api_key=os.environ.get("GROQ_API_KEY")
 )
@@ -129,6 +129,7 @@ def call_llm(chain, inputs: dict, retries=3, wait=45) -> str:
     Calls the LLM with automatic retry on failure.
     Returns empty string if all retries fail.
     """
+    time.sleep(5)  # Prevent Groq rate limit exhaustion for the 70B model
     for attempt in range(1, retries + 1):
         try:
             response = chain.invoke(inputs)
@@ -510,7 +511,7 @@ def generate_pop_questions(doc, course_info: dict, num_questions=6) -> list:
     print(f"    Generating {num_questions} POP theory questions for {course_code}...")
 
     if is_technical:
-        answer_instruction = "For mathematical/technical questions: show full step-by-step working. Start with the formula or principle, apply it step by step, show all calculations, end with a clear conclusion."
+        answer_instruction = "For mathematical/technical questions: ACT AS A HELPFUL LECTURER EXPLAINING TO A STUDENT. Show full step-by-step working. Start with the formula or principle and EXPLAIN WHY you are using it. Apply it step by step, show ALL calculations clearly, and break down complex logic so a beginner can understand it. End with a clear conclusion."
     else:
         answer_instruction = "Write complete answers that would score full marks in a NOUN POP exam. Use clear paragraphs. Include specific examples, facts, or theories from the course."
 
@@ -785,7 +786,13 @@ def run_batch():
         print(f"\n[{index}/{len(all_pdfs)}] {filename}")
 
         # Quick check: skip if already has enough questions
-        possible_code = os.path.splitext(filename)[0].upper().replace(" ", "")[:8]
+        import re
+        match = re.search(r'([A-Z]{3})\s*(\d{3})', filename, re.IGNORECASE)
+        if match:
+            possible_code = f"{match.group(1).upper()}{match.group(2)}"
+        else:
+            possible_code = os.path.splitext(filename)[0].upper().replace(" ", "")[:8]
+            
         existing = Course.objects.filter(code=possible_code).first()
         if existing:
             q_count = Question.objects.filter(course=existing).count()

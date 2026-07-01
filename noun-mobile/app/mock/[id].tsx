@@ -4,15 +4,14 @@ import {
   SafeAreaView, ScrollView, TextInput, StatusBar
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTheme } from '../../context/ThemeContext';
 
 const BASE_URL = 'https://noun-study-buddy.onrender.com';
-const NOUN_GREEN = '#006600';
-const NOUN_LIGHT_GREEN = '#e8f5e9';
-const NOUN_MID_GREEN = '#2e7d32';
 
 export default function MockExamEngine() {
   const params = useLocalSearchParams(); 
   const router = useRouter();
+  const { colors } = useTheme();
 
   // 1. ROUTING PARAMS
   const urlStr = typeof window !== 'undefined' ? window.location.href : '';
@@ -65,13 +64,11 @@ export default function MockExamEngine() {
         let all: any[] = [];
 
         if (isPopFormat) {
-          // 300+ Level (POP): Only Theory Questions
           const [pops] = await Promise.all([
             getData(`${BASE_URL}/api/pop-questions/?course_id=${cleanId}`, 'POP')
           ]);
           all = [...pops];
         } else {
-          // 100/200 Level (CBT): Multiple Choice & Fill-in-the-gap
           const [mcqs, fills] = await Promise.all([
             getData(`${BASE_URL}/api/questions/?course_id=${cleanId}`, 'CBT'),
             getData(`${BASE_URL}/api/fill-in-gaps/?course_id=${cleanId}`, 'FILL')
@@ -81,7 +78,6 @@ export default function MockExamEngine() {
 
         if (!isMounted) return;
         
-        // Randomize questions for Mock Exams
         if (!isStudyMode) {
           all = all.sort(() => Math.random() - 0.5);
         }
@@ -120,41 +116,38 @@ export default function MockExamEngine() {
     let s = 0;
     questions.forEach(q => {
       const userAnswer = (selectedAnswers[q.id] || '').trim().toLowerCase();
-      if (!userAnswer) return; // Skip unanswered
+      if (!userAnswer) return;
 
       if (q.qType === 'CBT') {
-        // CBT: selectedAnswers stores 'a','b','c','d' — correct_answer is 'A','B','C','D'
         const correctLetter = (q.correct_answer || '').trim().toLowerCase();
         if (userAnswer === correctLetter) s++;
       } else if (q.qType === 'FILL') {
-        // Fill-in-gap: compare typed text with correct_answer
         const correctText = (q.correct_answer || '').trim().toLowerCase();
         if (userAnswer === correctText) s++;
       }
-      // POP (theory) questions are not auto-graded
     });
     setScore(s);
     setSubmitted(true);
   };
 
-  if (loading) return <SafeAreaView style={styles.center}><ActivityIndicator size="large" color={NOUN_GREEN} /></SafeAreaView>;
+  if (loading) return <SafeAreaView style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.accent} /></SafeAreaView>;
 
   // 6. START SCREEN (Hidden in Study Mode)
   if (!examStarted) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.startBody}>
-          <View style={styles.iconCircle}><Text style={{fontSize: 50}}>📝</Text></View>
-          <Text style={styles.startTitle}>Timed Mock Exam</Text>
-          <Text style={styles.startSub}>45 Minutes | {questions.length} Questions</Text>
-          <Text style={{color: '#666', fontWeight: 'bold', marginBottom: 20}}>
+          <View style={[styles.iconCircle, { backgroundColor: colors.accentLight }]}><Text style={{fontSize: 50}}>📝</Text></View>
+          <Text style={[styles.startTitle, { color: colors.accent }]}>Timed Mock Exam</Text>
+          <Text style={[styles.startSub, { color: colors.textSecondary }]}>45 Minutes | {questions.length} Questions</Text>
+          <Text style={{color: colors.textSecondary, fontWeight: 'bold', marginBottom: 20}}>
             Format: {isPopFormat ? 'POP (Theory)' : 'CBT (Multiple Choice)'}
           </Text>
-          <View style={styles.rules}>
-            <Text style={styles.ruleTxt}>• Answers are hidden until submission.</Text>
-            <Text style={styles.ruleTxt}>• Timer auto-submits at 00:00.</Text>
+          <View style={[styles.rules, { backgroundColor: colors.accentLight }]}>
+            <Text style={[styles.ruleTxt, { color: colors.accentMid }]}>• Answers are hidden until submission.</Text>
+            <Text style={[styles.ruleTxt, { color: colors.accentMid }]}>• Timer auto-submits at 00:00.</Text>
           </View>
-          <TouchableOpacity style={styles.startBtn} onPress={() => setExamStarted(true)}>
+          <TouchableOpacity style={[styles.startBtn, { backgroundColor: colors.accent }]} onPress={() => setExamStarted(true)}>
             <Text style={styles.startBtnText}>Begin Exam 🚀</Text>
           </TouchableOpacity>
         </View>
@@ -164,45 +157,57 @@ export default function MockExamEngine() {
 
   // 7. RESULT SCREEN
   if (submitted) {
-     return (
-        <SafeAreaView style={styles.container}>
-          <View style={styles.center}>
-            <Text style={{fontSize: 50, fontWeight: 'bold', color: NOUN_GREEN}}>{score} / {questions.length}</Text>
-            <Text style={{fontSize: 18, color: '#666', marginBottom: 30}}>Exam Completed</Text>
-            <TouchableOpacity onPress={() => router.back()} style={[styles.startBtn, {width: '80%'}]}>
-               <Text style={styles.startBtnText}>Back to Course</Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-     );
+    const pct = questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.center}>
+          <Text style={{fontSize: 60, marginBottom: 10}}>{pct >= 70 ? '🎉' : pct >= 50 ? '😊' : '😢'}</Text>
+          <Text style={{fontSize: 50, fontWeight: 'bold', color: colors.accent}}>{score} / {questions.length}</Text>
+          <Text style={{fontSize: 22, fontWeight: 'bold', color: colors.text, marginTop: 8}}>{pct}%</Text>
+          <Text style={{fontSize: 16, color: colors.textSecondary, marginBottom: 30, marginTop: 4}}>
+            {pct >= 70 ? 'Excellent! Keep it up!' : pct >= 50 ? 'Good effort. Practice more!' : 'Don\'t give up. Try again!'}
+          </Text>
+          <TouchableOpacity onPress={() => router.back()} style={[styles.startBtn, { width: '80%', backgroundColor: colors.accent }]}>
+             <Text style={styles.startBtnText}>Back to Course</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   const currentQ = questions[currentIndex];
   const qId = String(currentQ?.id);
   const isCBT = currentQ?.qType === 'CBT';
   const isFill = currentQ?.qType === 'FILL';
-  // In study mode, show answer AFTER student selects (for CBT) or always (for theory)
   const hasAnswered = !!selectedAnswers[qId];
-  const showAnswer = revealed[qId] || (isStudyMode && (hasAnswered || currentQ?.qType === 'POP'));
+  
+  let showAnswer = false;
+  if (isStudyMode) {
+    if (revealed[qId] !== undefined) {
+      showAnswer = revealed[qId];
+    } else {
+      showAnswer = hasAnswered || currentQ?.qType === 'POP';
+    }
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={NOUN_GREEN} />
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.headerBg} />
+      <View style={[styles.header, { backgroundColor: colors.headerBg }]}>
         <View>
           <Text style={styles.headerText}>Question {currentIndex + 1}/{questions.length || 1}</Text>
-          <View style={styles.progressBg}><View style={[styles.progressFill, {width: `${((currentIndex+1)/(questions.length||1))*100}%`}]} /></View>
+          <View style={[styles.progressBg, { backgroundColor: colors.progressBg }]}><View style={[styles.progressFill, { width: `${((currentIndex+1)/(questions.length||1))*100}%`, backgroundColor: colors.progressFill }]} /></View>
         </View>
         {!isStudyMode && (
-          <View style={styles.timerBox}>
+          <View style={[styles.timerBox, { backgroundColor: colors.timerBg }]}>
             <Text style={styles.timerText}>⏱️ {Math.floor(timeLeft/60)}:{(timeLeft%60).toString().padStart(2,'0')}</Text>
           </View>
         )}
       </View>
 
       <ScrollView contentContainerStyle={{padding: 20}}>
-        <View style={styles.questionCard}>
-          <Text style={styles.qText}>{currentQ?.question_text || currentQ?.text}</Text>
+        <View style={[styles.questionCard, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
+          <Text style={[styles.qText, { color: colors.text }]}>{currentQ?.question_text || currentQ?.text}</Text>
 
           {isCBT && ['a', 'b', 'c', 'd'].map(l => {
             const isSelected = selectedAnswers[qId] === l;
@@ -214,9 +219,10 @@ export default function MockExamEngine() {
                 key={l}
                 style={[
                   styles.opt, 
-                  isSelected && styles.optSelected,
-                  showCorrectHighlight && styles.optCorrect,
-                  showWrongHighlight && { borderColor: '#c62828', backgroundColor: '#ffebee' },
+                  { backgroundColor: colors.optionBg, borderColor: colors.optionBorder },
+                  isSelected && { borderColor: colors.accent, backgroundColor: colors.accentLight },
+                  showCorrectHighlight && { borderColor: colors.accentMid, backgroundColor: colors.answerBg },
+                  showWrongHighlight && { borderColor: colors.error, backgroundColor: colors.errorLight },
                 ]}
                 onPress={() => {
                   if (!hasAnswered || !isStudyMode) {
@@ -225,28 +231,29 @@ export default function MockExamEngine() {
                 }}
                 disabled={showAnswer && !isStudyMode}
               >
-                <View style={[styles.letterBox, isSelected && {backgroundColor: NOUN_GREEN}]}>
-                  <Text style={{color: isSelected ? '#fff' : '#333'}}>{l.toUpperCase()}</Text>
+                <View style={[styles.letterBox, { backgroundColor: isSelected ? colors.accent : colors.optionBorder }, isSelected && {backgroundColor: colors.accent}]}>
+                  <Text style={{color: isSelected ? '#fff' : colors.text}}>{l.toUpperCase()}</Text>
                 </View>
-                <Text style={{flex: 1}}>{currentQ[`option_${l}`]}</Text>
+                <Text style={{flex: 1, color: colors.text}}>{currentQ[`option_${l}`]}</Text>
               </TouchableOpacity>
             );
           })}
 
           {!isCBT && (
             <TextInput 
-              style={styles.input} 
+              style={[styles.input, { borderColor: colors.optionBorder, backgroundColor: colors.inputBg, color: colors.text }]} 
               multiline 
               placeholder="Type your answer here..." 
+              placeholderTextColor={colors.textMuted}
               value={selectedAnswers[qId]||''} 
               onChangeText={t => setSelectedAnswers({...selectedAnswers, [qId]: t})}
             />
           )}
 
           {showAnswer && (
-            <View style={styles.ansBox}>
-              <Text style={styles.ansLabel}>Correct Answer:</Text>
-              <Text style={styles.ansText}>
+            <View style={[styles.ansBox, { backgroundColor: colors.answerBg, borderLeftColor: colors.accent }]}>
+              <Text style={[styles.ansLabel, { color: colors.accentMid }]}>Correct Answer:</Text>
+              <Text style={[styles.ansText, { color: colors.accent }]}>
                 {isCBT 
                   ? `${(currentQ?.correct_answer || '').toUpperCase()}. ${currentQ?.[`option_${(currentQ?.correct_answer || 'a').toLowerCase()}`] || ''}`
                   : (currentQ?.correct_answer || currentQ?.answer_text || 'N/A')}
@@ -254,20 +261,28 @@ export default function MockExamEngine() {
             </View>
           )}
 
-          {!isStudyMode && !showAnswer && (
-            <TouchableOpacity onPress={() => setRevealed({...revealed, [qId]: true})} style={{marginTop: 15, alignItems: 'center'}}>
-              <Text style={{color: '#666', fontWeight: 'bold'}}>💡 Reveal Answer</Text>
+          {isStudyMode && (
+            <TouchableOpacity onPress={() => setRevealed({...revealed, [qId]: !showAnswer})} style={{marginTop: 15, alignItems: 'center'}}>
+              <Text style={{color: colors.textMuted, fontWeight: 'bold'}}>
+                {showAnswer ? '🙈 Hide Answer' : '💡 Reveal Answer'}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.navBtn} onPress={() => setCurrentIndex(c => Math.max(0, c-1))}><Text>Prev</Text></TouchableOpacity>
+      <View style={[styles.footer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <TouchableOpacity style={[styles.navBtn, { backgroundColor: colors.optionBg }]} onPress={() => setCurrentIndex(c => Math.max(0, c-1))}>
+          <Text style={{ color: colors.text }}>Prev</Text>
+        </TouchableOpacity>
         {currentIndex === (questions.length - 1) ? (
-          <TouchableOpacity style={styles.submitBtn} onPress={submitExam}><Text style={{color:'#fff', fontWeight:'bold'}}>Finish</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.accent }]} onPress={submitExam}>
+            <Text style={{color:'#fff', fontWeight:'bold'}}>Finish</Text>
+          </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.navBtn} onPress={() => setCurrentIndex(c => Math.min(questions.length-1, c+1))}><Text>Next</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.navBtn, { backgroundColor: colors.optionBg }]} onPress={() => setCurrentIndex(c => Math.min(questions.length-1, c+1))}>
+            <Text style={{ color: colors.text }}>Next</Text>
+          </TouchableOpacity>
         )}
       </View>
     </SafeAreaView>
@@ -275,33 +290,31 @@ export default function MockExamEngine() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9f8' },
+  container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { backgroundColor: NOUN_GREEN, padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 40 },
+  header: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 40 },
   headerText: { color: '#fff', fontSize: 14, opacity: 0.8 },
-  progressBg: { width: 100, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, marginTop: 5 },
-  progressFill: { height: '100%', backgroundColor: '#fff', borderRadius: 2 },
-  timerBox: { backgroundColor: 'rgba(0,0,0,0.2)', padding: 8, borderRadius: 20 },
+  progressBg: { width: 100, height: 4, borderRadius: 2, marginTop: 5 },
+  progressFill: { height: '100%', borderRadius: 2 },
+  timerBox: { padding: 8, borderRadius: 20 },
   timerText: { color: '#fff', fontWeight: 'bold' },
-  questionCard: { backgroundColor: '#fff', padding: 20, borderRadius: 20, elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
-  qText: { fontSize: 19, fontWeight: 'bold', color: '#1a1a1a', lineHeight: 26, marginBottom: 20 },
-  opt: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#eee', marginBottom: 10, backgroundColor: '#fafafa' },
-  optSelected: { borderColor: NOUN_GREEN, backgroundColor: NOUN_LIGHT_GREEN },
-  optCorrect: { borderColor: NOUN_MID_GREEN, backgroundColor: '#e8f5e9' },
-  letterBox: { width: 30, height: 30, borderRadius: 8, backgroundColor: '#eee', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  input: { borderWidth: 1, borderColor: '#eee', borderRadius: 12, padding: 15, minHeight: 100, backgroundColor: '#fafafa', textAlignVertical: 'top' },
-  ansBox: { marginTop: 20, padding: 15, backgroundColor: NOUN_LIGHT_GREEN, borderRadius: 12, borderLeftWidth: 5, borderLeftColor: NOUN_GREEN },
-  ansLabel: { fontSize: 12, fontWeight: 'bold', color: NOUN_MID_GREEN, marginBottom: 4 },
-  ansText: { fontSize: 16, color: NOUN_GREEN, fontWeight: 'bold' },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#eee' },
-  navBtn: { padding: 12, backgroundColor: '#f5f5f5', borderRadius: 10, minWidth: 80, alignItems: 'center' },
-  submitBtn: { padding: 12, backgroundColor: NOUN_GREEN, borderRadius: 10, minWidth: 80, alignItems: 'center' },
+  questionCard: { padding: 20, borderRadius: 20, elevation: 4, shadowOpacity: 0.1, shadowRadius: 10 },
+  qText: { fontSize: 19, fontWeight: 'bold', lineHeight: 26, marginBottom: 20 },
+  opt: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 12, borderWidth: 1, marginBottom: 10 },
+  letterBox: { width: 30, height: 30, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  input: { borderWidth: 1, borderRadius: 12, padding: 15, minHeight: 100, textAlignVertical: 'top' },
+  ansBox: { marginTop: 20, padding: 15, borderRadius: 12, borderLeftWidth: 5 },
+  ansLabel: { fontSize: 12, fontWeight: 'bold', marginBottom: 4 },
+  ansText: { fontSize: 16, fontWeight: 'bold' },
+  footer: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, borderTopWidth: 1 },
+  navBtn: { padding: 12, borderRadius: 10, minWidth: 80, alignItems: 'center' },
+  submitBtn: { padding: 12, borderRadius: 10, minWidth: 80, alignItems: 'center' },
   startBody: { flex: 1, padding: 30, alignItems: 'center', justifyContent: 'center' },
-  iconCircle: { width: 100, height: 100, backgroundColor: NOUN_LIGHT_GREEN, borderRadius: 50, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  startTitle: { fontSize: 26, fontWeight: 'bold', color: NOUN_GREEN },
-  startSub: { color: '#666', marginBottom: 10 },
-  rules: { backgroundColor: NOUN_LIGHT_GREEN, padding: 20, borderRadius: 15, width: '100%', marginBottom: 30 },
-  ruleTxt: { color: NOUN_MID_GREEN, marginBottom: 5 },
-  startBtn: { backgroundColor: NOUN_GREEN, width: '100%', padding: 18, borderRadius: 15, alignItems: 'center' },
-  startBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }
+  iconCircle: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  startTitle: { fontSize: 26, fontWeight: 'bold' },
+  startSub: { marginBottom: 10 },
+  rules: { padding: 20, borderRadius: 15, width: '100%', marginBottom: 30 },
+  ruleTxt: { marginBottom: 5 },
+  startBtn: { width: '100%', padding: 18, borderRadius: 15, alignItems: 'center' },
+  startBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
 });

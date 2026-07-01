@@ -164,6 +164,8 @@ REST_FRAMEWORK = {
 
 # We don't want to force email verification right now (makes testing easier)
 ACCOUNT_EMAIL_VERIFICATION = 'none'
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_REQUIRED = True
 
 # PAYSTACK SETTINGS (PLACEHOLDERS)
 PAYSTACK_PUBLIC_KEY = 'pk_test_a64b83152afb7c3802b47beeac0544bfd7635861'

@@ -1,15 +1,18 @@
 import Markdown from 'react-native-markdown-display';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, Linking } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function SummaryPage() {
   const { id } = useLocalSearchParams();
   const [courseData, setCourseData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const { colors } = useTheme();
+  const speechRef = useRef<any>(null);
 
   useEffect(() => {
-    // Fetch the course data from Django
     fetch(`https://noun-study-buddy.onrender.com/api/summaries/course/${id}/`)
       .then(res => res.json())
       .then(data => {
@@ -17,62 +20,119 @@ export default function SummaryPage() {
         setLoading(false);
       })
       .catch(err => console.error(err));
+
+    // Cleanup: stop speech when leaving page
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
   }, [id]);
 
+  const toggleSpeech = () => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    if (isPlaying) {
+      window.speechSynthesis.cancel();
+      setIsPlaying(false);
+    } else {
+      const text = courseData?.content || '';
+      if (!text) return;
+
+      // Break into chunks (SpeechSynthesis has a ~5000 char limit in some browsers)
+      const chunks = text.match(/.{1,4000}/g) || [];
+      let chunkIndex = 0;
+
+      const speakNext = () => {
+        if (chunkIndex >= chunks.length) {
+          setIsPlaying(false);
+          return;
+        }
+        const utterance = new SpeechSynthesisUtterance(chunks[chunkIndex]);
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        utterance.onend = () => {
+          chunkIndex++;
+          speakNext();
+        };
+        utterance.onerror = () => {
+          setIsPlaying(false);
+        };
+        window.speechSynthesis.speak(utterance);
+      };
+
+      speakNext();
+      setIsPlaying(true);
+    }
+  };
+
   if (loading) {
-    return <ActivityIndicator size="large" color="#006400" style={{ marginTop: 50 }} />;
+    return <SafeAreaView style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.accent} /></SafeAreaView>;
   }
 
-  // Handle case where no summary exists (API returns error object)
   const hasError = courseData?.detail || !courseData?.title;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.headerBg }]}>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 8 }}>
+          <Text style={{ color: '#fff', fontWeight: 'bold' }}>← Back</Text>
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>{courseData?.title || 'Course Summary'}</Text>
       </View>
 
       <ScrollView style={styles.contentContainer}>
         {hasError ? (
-          <Text style={{ fontSize: 16, color: '#666', textAlign: 'center', marginTop: 30 }}>
+          <Text style={{ fontSize: 16, color: colors.textSecondary, textAlign: 'center', marginTop: 30 }}>
             {courseData?.detail || "No summary available for this course yet."}
           </Text>
         ) : (
-          <Markdown style={{ body: styles.summaryText }}>
+          <Markdown style={{ body: [styles.summaryText, { color: colors.text }] }}>
             {courseData?.content || "No summary content available yet."}
           </Markdown>
         )}
       </ScrollView>
 
-      {courseData?.file ? (
-        <TouchableOpacity 
-          style={styles.downloadButton} 
-          onPress={() => Linking.openURL(courseData.file)}
-        >
-          <Text style={styles.downloadText}>📥 Download Full PDF</Text>
-        </TouchableOpacity>
-      ) : null}
-    </View>
+      {/* Action buttons */}
+      <View style={styles.actionRow}>
+        {/* Audio Button */}
+        {!hasError && (
+          <TouchableOpacity 
+            style={[styles.actionBtn, { backgroundColor: isPlaying ? colors.error : colors.accent }]} 
+            onPress={toggleSpeech}
+          >
+            <Text style={styles.actionBtnText}>{isPlaying ? '⏹️ Stop Audio' : '🔊 Listen'}</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Download Button */}
+        {courseData?.file && (
+          <TouchableOpacity 
+            style={[styles.actionBtn, { backgroundColor: colors.accent }]} 
+            onPress={() => Linking.openURL(courseData.file)}
+          >
+            <Text style={styles.actionBtnText}>📥 Download PDF</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F7FA' },
-  header: { backgroundColor: '#006400', padding: 20, paddingTop: 40, alignItems: 'center' },
-  headerTitle: { color: 'white', fontSize: 22, fontWeight: 'bold' },
-  contentContainer: { flex: 1, padding: 20, marginTop: 20 },
-  summaryText: { fontSize: 18, lineHeight: 28, color: '#333', textAlign: 'center' },
-  downloadButton: { 
-    backgroundColor: '#006400', 
-    margin: 20, 
-    padding: 18, 
-    borderRadius: 12, 
+  container: { flex: 1 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: { padding: 20, paddingTop: 50, alignItems: 'center' },
+  headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold' },
+  contentContainer: { flex: 1, padding: 20 },
+  summaryText: { fontSize: 16, lineHeight: 26 },
+  actionRow: { flexDirection: 'row', padding: 14, gap: 10 },
+  actionBtn: { 
+    flex: 1,
+    padding: 16, 
+    borderRadius: 14, 
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3
+    elevation: 3,
   },
-  downloadText: { color: 'white', fontSize: 18, fontWeight: 'bold' }
+  actionBtnText: { color: 'white', fontSize: 15, fontWeight: 'bold' },
 });

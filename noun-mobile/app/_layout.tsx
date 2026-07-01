@@ -1,8 +1,13 @@
 import { Stack } from 'expo-router';
+import { ThemeProvider } from '../context/ThemeContext';
+import { AuthProvider } from '../context/AuthContext';
 
 export default function RootLayout() {
   return (
-    // This simply tells the app to load whichever page the URL asks for!
-    <Stack screenOptions={{ headerShown: false }} />
+    <AuthProvider>
+      <ThemeProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }

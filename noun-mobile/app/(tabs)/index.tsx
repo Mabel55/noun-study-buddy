@@ -1,15 +1,17 @@
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, SafeAreaView } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
-// UPDATE THIS URL based on your testing environment (Emulator vs Physical Phone)
 const API_URL = 'https://noun-study-buddy.onrender.com/api/courses/'; 
 
 export default function CourseDashboard() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { colors, isDark, toggleTheme } = useTheme();
+  const { isLoggedIn, user } = useAuth();
 
-  // Fetch the courses from your Django Backend
   useEffect(() => {
     fetch(API_URL)
       .then((response) => response.json())
@@ -23,26 +25,61 @@ export default function CourseDashboard() {
       });
   }, []);
 
-  // The design for a single course card
-  const renderCourseCard = ({ item }: any) => (
-    <TouchableOpacity style={styles.card} onPress={() => router.push(`/course/${item.id}`)}>
-      <Text style={styles.courseCode}>{item.code}</Text>
-      <Text style={styles.courseTitle}>{item.title}</Text>
-      <View style={styles.actionRow}>
-        <Text style={styles.actionText}>Tap to start studying →</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderCourseCard = ({ item }: any) => {
+    const qCount = (item.cbt_questions?.length || 0) + (item.pop_questions?.length || 0) + (item.fill_questions?.length || 0);
+    return (
+      <TouchableOpacity 
+        style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.shadow }]} 
+        onPress={() => router.push(`/course/${item.id}`)}
+      >
+        <View style={styles.cardHeader}>
+          <Text style={[styles.courseCode, { color: colors.text }]}>{item.code}</Text>
+          <View style={[styles.examBadge, { backgroundColor: item.exam_type === 'POP' ? '#fff3e0' : colors.accentLight }]}>
+            <Text style={{ fontSize: 10, fontWeight: 'bold', color: item.exam_type === 'POP' ? '#e65100' : colors.accent }}>
+              {item.exam_type}
+            </Text>
+          </View>
+        </View>
+        <Text style={[styles.courseTitle, { color: colors.textSecondary }]}>{item.title}</Text>
+        <View style={[styles.statsRow]}>
+          <Text style={[styles.statText, { color: colors.textMuted }]}>📝 {qCount} Questions</Text>
+          <Text style={[styles.statText, { color: colors.textMuted }]}>📖 {item.summaries?.length || 0} Summary</Text>
+        </View>
+        <View style={[styles.actionRow, { borderTopColor: colors.border }]}>
+          <Text style={[styles.actionText, { color: colors.accent }]}>Tap to start studying →</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>📚 NOUN Study Buddy</Text>
-        <Text style={styles.headerSubtitle}>Select a course to begin your mock exam</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.headerBg }]}>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={[styles.headerTitle, { color: colors.headerText }]}>📚 NOUN Study Buddy</Text>
+            <Text style={[styles.headerSubtitle, { color: colors.headerSubtext }]}>
+              {isLoggedIn ? `Welcome, ${user?.first_name || user?.username || 'Student'}!` : 'Select a course to begin'}
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={toggleTheme} style={styles.themeBtn}>
+              <Text style={{ fontSize: 22 }}>{isDark ? '☀️' : '🌙'}</Text>
+            </TouchableOpacity>
+            {!isLoggedIn && (
+              <TouchableOpacity 
+                onPress={() => router.push('/auth/login' as any)} 
+                style={[styles.loginBtn, { borderColor: 'rgba(255,255,255,0.4)' }]}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>Login</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#006400" style={{ marginTop: 50 }} />
+        <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 50 }} />
       ) : (
         <FlatList
           data={courses}
@@ -56,64 +93,95 @@ export default function CourseDashboard() {
   );
 }
 
-// Clean, native styling with a university-green vibe
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
   },
   header: {
     padding: 24,
-    backgroundColor: '#006400',
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     marginBottom: 16,
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: '#E0E0E0',
+    fontSize: 14,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  themeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loginBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
   },
   listContainer: {
     paddingHorizontal: 16,
     paddingBottom: 24,
   },
   card: {
-    backgroundColor: '#FFFFFF',
     padding: 20,
-    borderRadius: 12,
-    marginBottom: 16,
-    elevation: 3, // Shadow for Android
-    shadowColor: '#000', // Shadow for iOS
+    borderRadius: 16,
+    marginBottom: 14,
+    elevation: 3,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   courseCode: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 4,
+  },
+  examBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   courseTitle: {
-    fontSize: 16,
-    color: '#666666',
-    marginBottom: 16,
+    fontSize: 15,
+    marginBottom: 12,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 14,
+  },
+  statText: {
+    fontSize: 12,
   },
   actionRow: {
     borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
     paddingTop: 12,
     alignItems: 'flex-end',
   },
   actionText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#006400',
   },
 });
