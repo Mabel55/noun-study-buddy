@@ -39,8 +39,15 @@ export default function SummaryPage() {
       const text = courseData?.content || '';
       if (!text) return;
 
-      // Break into chunks (SpeechSynthesis has a ~5000 char limit in some browsers)
-      const chunks = text.match(/.{1,4000}/g) || [];
+      // 1. Strip Markdown characters so it sounds natural
+      const cleanText = text
+        .replace(/[#*`_~>[\]()-]/g, ' ') // Remove markdown symbols
+        .replace(/https?:\/\/\S+/g, '') // Remove links
+        .replace(/\s+/g, ' ')           // Normalize spaces
+        .trim();
+
+      // 2. Break into sentences/chunks safely without cutting words in half
+      const chunks = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
       let chunkIndex = 0;
 
       const speakNext = () => {
@@ -48,7 +55,7 @@ export default function SummaryPage() {
           setIsPlaying(false);
           return;
         }
-        const utterance = new SpeechSynthesisUtterance(chunks[chunkIndex]);
+        const utterance = new SpeechSynthesisUtterance(chunks[chunkIndex].trim());
         utterance.rate = 0.9;
         utterance.pitch = 1;
         utterance.onend = () => {
