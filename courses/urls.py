@@ -21,6 +21,8 @@ from .dashboard_views import (
     get_leaderboard,
 )
 
+from .ai_views import chat_with_tutor
+
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet)
 router.register(r'questions', QuestionViewSet, basename='questions')
@@ -47,4 +49,7 @@ urlpatterns = [
     path('dashboard/', get_dashboard, name='dashboard'),
     path('weak-areas/', get_weak_areas, name='weak_areas'),
     path('leaderboard/', get_leaderboard, name='leaderboard'),
+
+    # Phase 4: AI Features
+    path('chat/', chat_with_tutor, name='chat_with_tutor'),
 ]
