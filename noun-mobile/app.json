@@ -23,7 +23,14 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "NOUN Study Buddy",
+      "shortName": "Study Buddy",
+      "themeColor": "#006400",
+      "backgroundColor": "#F5F7FA",
+      "display": "standalone",
+      "scope": "/",
+      "startUrl": "/"
     },
     "plugins": [
       "expo-router",
