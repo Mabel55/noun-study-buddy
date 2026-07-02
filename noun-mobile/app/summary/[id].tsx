@@ -10,6 +10,7 @@ export default function SummaryPage() {
   const [courseData, setCourseData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  const isPlayingRef = useRef(false);
   const { colors } = useTheme();
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export default function SummaryPage() {
     // Cleanup: stop speech when leaving page
     return () => {
       Speech.stop();
+      isPlayingRef.current = false;
     };
   }, [id]);
 
@@ -31,6 +33,7 @@ export default function SummaryPage() {
     if (isPlaying) {
       Speech.stop();
       setIsPlaying(false);
+      isPlayingRef.current = false;
     } else {
       const text = courseData?.content || '';
       if (!text) return;
@@ -42,6 +45,7 @@ export default function SummaryPage() {
         .trim();
 
       setIsPlaying(true);
+      isPlayingRef.current = true;
       
       // Splitting text into safe sentence-sized chunks to prevent memory crashes
       const chunks = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
@@ -49,8 +53,9 @@ export default function SummaryPage() {
       let chunkIndex = 0;
 
       const speakNext = () => {
-        if (chunkIndex >= chunks.length || !isPlaying) {
+        if (chunkIndex >= chunks.length || !isPlayingRef.current) {
           setIsPlaying(false);
+          isPlayingRef.current = false;
           return;
         }
         
@@ -69,6 +74,7 @@ export default function SummaryPage() {
           },
           onError: () => {
             setIsPlaying(false);
+            isPlayingRef.current = false;
             Speech.stop();
           }
         });
