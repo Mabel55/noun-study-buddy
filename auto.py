@@ -55,7 +55,7 @@ from courses.models import Course, Summary, Question, FillInTheGap, PopQuestion
 # ── LLM Setup ─────────────────────────────────────────────────────────────────
 # Free at https://console.groq.com — 14,400 requests/day
 llm = ChatGroq(
-    model="llama3-8b-8192",
+    model="qwen/qwen3-32b",
     temperature=0.1,
     max_tokens=4000,
     api_key=os.environ.get("GROQ_API_KEY")

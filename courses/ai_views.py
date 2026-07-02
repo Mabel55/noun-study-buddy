@@ -58,7 +58,7 @@ def chat_with_tutor(request):
             
     try:
         llm = ChatGroq(
-            model="llama3-8b-8192",
+            model="qwen/qwen3-32b",
             temperature=0.3,
             max_tokens=1000,
             api_key=os.environ.get("GROQ_API_KEY", "fallback-key-to-prevent-crash")
