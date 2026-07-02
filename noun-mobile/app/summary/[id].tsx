@@ -45,16 +45,28 @@ export default function SummaryPage() {
         .trim();
 
       setIsPlaying(true);
-      setIsPlaying(true);
       
-      Speech.speak(cleanText, {
-        rate: 0.9,
-        pitch: 1.0,
-        onDone: () => setIsPlaying(false),
-        onError: () => {
-          setIsPlaying(false);
-          Speech.stop();
-        }
+      // Android TTS has a hard 4000 character limit per utterance.
+      // We chunk by sentences and queue them up to bypass this limit.
+      const chunks = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
+      
+      chunks.forEach((chunk, index) => {
+        if (!chunk.trim()) return;
+        
+        Speech.speak(chunk.trim(), {
+          rate: 0.9,
+          pitch: 1.0,
+          onDone: () => {
+            // When the last chunk finishes, turn off the playing state
+            if (index === chunks.length - 1) {
+              setIsPlaying(false);
+            }
+          },
+          onError: () => {
+            setIsPlaying(false);
+            Speech.stop();
+          }
+        });
       });
     }
   };
