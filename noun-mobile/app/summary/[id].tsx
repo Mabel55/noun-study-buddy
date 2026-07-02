@@ -1,6 +1,6 @@
 import Markdown from 'react-native-markdown-display';
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, Linking, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, Linking, Platform, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import * as Speech from 'expo-speech';
@@ -36,51 +36,36 @@ export default function SummaryPage() {
       isPlayingRef.current = false;
     } else {
       const text = courseData?.content || '';
-      if (!text) return;
-
-      const cleanText = text
-        .replace(/[#*`_~>[\]()=\-|]/g, ' ') // Strip out ALL markdown and separator characters like ===
-        .replace(/https?:\/\/\S+/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-      setIsPlaying(true);
-      isPlayingRef.current = true;
       
-      // Splitting text into safe sentence-sized chunks to prevent memory crashes
-      const chunks = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
-
-      let chunkIndex = 0;
-
-      const speakNext = () => {
-        if (chunkIndex >= chunks.length || !isPlayingRef.current) {
-          setIsPlaying(false);
-          isPlayingRef.current = false;
-          return;
-        }
-        
-        Speech.speak(chunks[chunkIndex].trim(), {
-          language: 'en-US',
-          rate: 0.9,
-          pitch: 1.0,
-          onDone: () => {
-            chunkIndex++;
-            // A tiny delay to allow the hardware audio buffer to flush
-            if (Platform.OS === 'ios') {
-               setTimeout(speakNext, 50);
-            } else {
-               speakNext();
+      // DEBUG: Show alert so we know the button works
+      Alert.alert(
+        'TTS Debug',
+        `Content length: ${text.length} chars\nPlatform: ${Platform.OS}\nFirst 100 chars: ${text.substring(0, 100)}`,
+        [
+          {
+            text: 'Try Speaking',
+            onPress: () => {
+              setIsPlaying(true);
+              isPlayingRef.current = true;
+              
+              // Try the simplest possible speech call
+              Speech.speak('Hello, this is a test of the text to speech system.', {
+                onDone: () => {
+                  Alert.alert('TTS', 'Speech finished successfully!');
+                  setIsPlaying(false);
+                  isPlayingRef.current = false;
+                },
+                onError: (error: any) => {
+                  Alert.alert('TTS Error', JSON.stringify(error));
+                  setIsPlaying(false);
+                  isPlayingRef.current = false;
+                }
+              });
             }
           },
-          onError: () => {
-            setIsPlaying(false);
-            isPlayingRef.current = false;
-            Speech.stop();
-          }
-        });
-      };
-
-      speakNext();
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
     }
   };
 
