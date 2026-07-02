@@ -1,16 +1,13 @@
 import Markdown from 'react-native-markdown-display';
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, Linking, Platform, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, Linking } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
-import * as Speech from 'expo-speech';
 
 export default function SummaryPage() {
   const { id } = useLocalSearchParams();
   const [courseData, setCourseData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const isPlayingRef = useRef(false);
   const { colors } = useTheme();
 
   useEffect(() => {
@@ -21,53 +18,7 @@ export default function SummaryPage() {
         setLoading(false);
       })
       .catch(err => console.error(err));
-
-    // Cleanup: stop speech when leaving page
-    return () => {
-      Speech.stop();
-      isPlayingRef.current = false;
-    };
   }, [id]);
-
-  const toggleSpeech = () => {
-    if (isPlaying) {
-      Speech.stop();
-      setIsPlaying(false);
-      isPlayingRef.current = false;
-    } else {
-      const text = courseData?.content || '';
-      
-      // DEBUG: Show alert so we know the button works
-      Alert.alert(
-        'TTS Debug',
-        `Content length: ${text.length} chars\nPlatform: ${Platform.OS}\nFirst 100 chars: ${text.substring(0, 100)}`,
-        [
-          {
-            text: 'Try Speaking',
-            onPress: () => {
-              setIsPlaying(true);
-              isPlayingRef.current = true;
-              
-              // Try the simplest possible speech call
-              Speech.speak('Hello, this is a test of the text to speech system.', {
-                onDone: () => {
-                  Alert.alert('TTS', 'Speech finished successfully!');
-                  setIsPlaying(false);
-                  isPlayingRef.current = false;
-                },
-                onError: (error: any) => {
-                  Alert.alert('TTS Error', JSON.stringify(error));
-                  setIsPlaying(false);
-                  isPlayingRef.current = false;
-                }
-              });
-            }
-          },
-          { text: 'Cancel', style: 'cancel' }
-        ]
-      );
-    }
-  };
 
   if (loading) {
     return <SafeAreaView style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.accent} /></SafeAreaView>;
@@ -96,28 +47,17 @@ export default function SummaryPage() {
         )}
       </ScrollView>
 
-      {/* Action buttons */}
-      <View style={styles.actionRow}>
-        {/* Audio Button */}
-        {!hasError && (
-          <TouchableOpacity 
-            style={[styles.actionBtn, { backgroundColor: isPlaying ? colors.error : colors.accent }]} 
-            onPress={toggleSpeech}
-          >
-            <Text style={styles.actionBtnText}>{isPlaying ? '⏹️ Stop Audio' : '🔊 Listen'}</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Download Button */}
-        {courseData?.file && (
+      {/* Download Button */}
+      {courseData?.file && (
+        <View style={styles.actionRow}>
           <TouchableOpacity 
             style={[styles.actionBtn, { backgroundColor: colors.accent }]} 
             onPress={() => Linking.openURL(courseData.file)}
           >
             <Text style={styles.actionBtnText}>📥 Download PDF</Text>
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
