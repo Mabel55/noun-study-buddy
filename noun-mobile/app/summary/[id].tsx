@@ -37,37 +37,54 @@ export default function SummaryPage() {
       const text = courseData?.content || '';
       if (!text) return;
 
-      // 1. Strip Markdown characters so it sounds natural
       const cleanText = text
-        .replace(/[#*`_~>[\]()-]/g, ' ') // Remove markdown symbols
-        .replace(/https?:\/\/\S+/g, '') // Remove links
-        .replace(/\s+/g, ' ')           // Normalize spaces
+        .replace(/[#*`_~>[\]()-]/g, ' ')
+        .replace(/https?:\/\/\S+/g, '')
+        .replace(/\s+/g, ' ')
         .trim();
 
       setIsPlaying(true);
       
-      // Android TTS has a hard 4000 character limit per utterance.
-      // We chunk by sentences and queue them up to bypass this limit.
-      const chunks = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
+      // Robust Chunker: Splits text into safe ~200 character pieces at word boundaries
+      // to guarantee it never hits Android limits and streams perfectly.
+      const words = cleanText.split(' ');
+      const chunks = [];
+      let currentChunk = '';
       
-      chunks.forEach((chunk, index) => {
-        if (!chunk.trim()) return;
+      words.forEach(word => {
+        if (currentChunk.length + word.length > 200) {
+          chunks.push(currentChunk.trim());
+          currentChunk = word + ' ';
+        } else {
+          currentChunk += word + ' ';
+        }
+      });
+      if (currentChunk.trim()) chunks.push(currentChunk.trim());
+
+      let chunkIndex = 0;
+
+      const speakNext = () => {
+        if (chunkIndex >= chunks.length || !isPlaying) {
+          setIsPlaying(false);
+          return;
+        }
         
-        Speech.speak(chunk.trim(), {
+        Speech.speak(chunks[chunkIndex], {
           rate: 0.9,
           pitch: 1.0,
           onDone: () => {
-            // When the last chunk finishes, turn off the playing state
-            if (index === chunks.length - 1) {
-              setIsPlaying(false);
-            }
+            chunkIndex++;
+            // Small timeout prevents iOS audio session crashing between chunks
+            setTimeout(speakNext, 50);
           },
           onError: () => {
             setIsPlaying(false);
             Speech.stop();
           }
         });
-      });
+      };
+
+      speakNext();
     }
   };
 
