@@ -7,13 +7,7 @@ from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
-# We'll use the same model as auto.py to avoid rate limits
-llm = ChatGroq(
-    model="llama-3.1-8b-instant",
-    temperature=0.3,
-    max_tokens=1000,
-    api_key=os.environ.get("GROQ_API_KEY")
-)
+# We'll initialize the LLM lazily inside the view to prevent boot crashes
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -63,6 +57,12 @@ def chat_with_tutor(request):
             langchain_messages.append(AIMessage(content=msg.get('content', '')))
             
     try:
+        llm = ChatGroq(
+            model="llama-3.1-8b-instant",
+            temperature=0.3,
+            max_tokens=1000,
+            api_key=os.environ.get("GROQ_API_KEY", "fallback-key-to-prevent-crash")
+        )
         response = llm.invoke(langchain_messages)
         return Response({
             'reply': response.content
