@@ -797,8 +797,9 @@ def run_batch():
         if existing:
             q_count = Question.objects.filter(course=existing).count()
             p_count = PopQuestion.objects.filter(course=existing).count()
-            if q_count >= 20 or p_count >= 4:
-                print(f"  SKIPPING - already has {q_count} MCQs and {p_count} POP questions")
+            has_summary = Summary.objects.filter(course=existing).exists()
+            if (q_count > 0 or p_count > 0) or has_summary:
+                print(f"  SKIPPING - already processed ({q_count} MCQs, {p_count} POP, summary: {has_summary})")
                 skip_count += 1
                 continue
 
