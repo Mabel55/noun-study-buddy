@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, Linking } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
+import * as Speech from 'expo-speech';
 
 export default function SummaryPage() {
   const { id } = useLocalSearchParams();
@@ -10,7 +11,6 @@ export default function SummaryPage() {
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const { colors } = useTheme();
-  const speechRef = useRef<any>(null);
 
   useEffect(() => {
     fetch(`https://noun-study-buddy.onrender.com/api/summaries/course/${id}/`)
@@ -23,17 +23,15 @@ export default function SummaryPage() {
 
     // Cleanup: stop speech when leaving page
     return () => {
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
+      Speech.stop();
     };
   }, [id]);
 
-  const toggleSpeech = () => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-
-    if (isPlaying) {
-      window.speechSynthesis.cancel();
+  const toggleSpeech = async () => {
+    const isSpeaking = await Speech.isSpeakingAsync();
+    
+    if (isPlaying || isSpeaking) {
+      Speech.stop();
       setIsPlaying(false);
     } else {
       const text = courseData?.content || '';
@@ -46,7 +44,10 @@ export default function SummaryPage() {
         .replace(/\s+/g, ' ')           // Normalize spaces
         .trim();
 
-      // 2. Break into sentences/chunks safely without cutting words in half
+      setIsPlaying(true);
+      
+      // expo-speech handles long text naturally, but breaking it up by sentences helps
+      // it stream better and avoids timeouts on certain OS implementations.
       const chunks = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
       let chunkIndex = 0;
 
@@ -55,21 +56,21 @@ export default function SummaryPage() {
           setIsPlaying(false);
           return;
         }
-        const utterance = new SpeechSynthesisUtterance(chunks[chunkIndex].trim());
-        utterance.rate = 0.9;
-        utterance.pitch = 1;
-        utterance.onend = () => {
-          chunkIndex++;
-          speakNext();
-        };
-        utterance.onerror = () => {
-          setIsPlaying(false);
-        };
-        window.speechSynthesis.speak(utterance);
+        
+        Speech.speak(chunks[chunkIndex].trim(), {
+          rate: 0.9,
+          pitch: 1.0,
+          onDone: () => {
+            chunkIndex++;
+            speakNext();
+          },
+          onError: () => {
+            setIsPlaying(false);
+            Speech.stop();
+          }
+        });
       };
-
       speakNext();
-      setIsPlaying(true);
     }
   };
 
