@@ -43,59 +43,38 @@ export default function SummaryPage() {
 
       setIsPlaying(true);
       
-      if (Platform.OS !== 'android') {
-        // iOS and Web do NOT have character limits and can glitch if chunked unnecessarily.
-        Speech.speak(cleanText, {
+      // Splitting text into safe sentence-sized chunks to prevent memory crashes
+      const chunks = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
+
+      let chunkIndex = 0;
+
+      const speakNext = () => {
+        if (chunkIndex >= chunks.length || !isPlaying) {
+          setIsPlaying(false);
+          return;
+        }
+        
+        Speech.speak(chunks[chunkIndex].trim(), {
           language: 'en-US',
           rate: 0.9,
           pitch: 1.0,
-          onDone: () => setIsPlaying(false),
+          onDone: () => {
+            chunkIndex++;
+            // A tiny delay to allow the hardware audio buffer to flush
+            if (Platform.OS === 'ios') {
+               setTimeout(speakNext, 50);
+            } else {
+               speakNext();
+            }
+          },
           onError: () => {
             setIsPlaying(false);
             Speech.stop();
           }
         });
-      } else {
-        // Android ONLY: Splitting text into safe pieces at word boundaries
-        const words = cleanText.split(' ');
-        const chunks = [];
-        let currentChunk = '';
-        
-        words.forEach(word => {
-          if (currentChunk.length + word.length > 2000) {
-            chunks.push(currentChunk.trim());
-            currentChunk = word + ' ';
-          } else {
-            currentChunk += word + ' ';
-          }
-        });
-        if (currentChunk.trim()) chunks.push(currentChunk.trim());
+      };
 
-        let chunkIndex = 0;
-
-        const speakNext = () => {
-          if (chunkIndex >= chunks.length || !isPlaying) {
-            setIsPlaying(false);
-            return;
-          }
-          
-          Speech.speak(chunks[chunkIndex], {
-            language: 'en-US',
-            rate: 0.9,
-            pitch: 1.0,
-            onDone: () => {
-              chunkIndex++;
-              setTimeout(speakNext, 50);
-            },
-            onError: () => {
-              setIsPlaying(false);
-              Speech.stop();
-            }
-          });
-        };
-
-        speakNext();
-      }
+      speakNext();
     }
   };
 
