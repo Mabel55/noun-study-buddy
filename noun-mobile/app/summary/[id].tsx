@@ -1,6 +1,6 @@
 import Markdown from 'react-native-markdown-display';
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, Linking, Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import * as Speech from 'expo-speech';
@@ -36,53 +36,66 @@ export default function SummaryPage() {
       if (!text) return;
 
       const cleanText = text
-        .replace(/[#*`_~>[\]()-]/g, ' ')
+        .replace(/[#*`_~>[\]()=\-|]/g, ' ') // Strip out ALL markdown and separator characters like ===
         .replace(/https?:\/\/\S+/g, '')
         .replace(/\s+/g, ' ')
         .trim();
 
       setIsPlaying(true);
       
-      // Robust Chunker: Splits text into safe ~200 character pieces at word boundaries
-      // to guarantee it never hits Android limits and streams perfectly.
-      const words = cleanText.split(' ');
-      const chunks = [];
-      let currentChunk = '';
-      
-      words.forEach(word => {
-        if (currentChunk.length + word.length > 200) {
-          chunks.push(currentChunk.trim());
-          currentChunk = word + ' ';
-        } else {
-          currentChunk += word + ' ';
-        }
-      });
-      if (currentChunk.trim()) chunks.push(currentChunk.trim());
-
-      let chunkIndex = 0;
-
-      const speakNext = () => {
-        if (chunkIndex >= chunks.length || !isPlaying) {
-          setIsPlaying(false);
-          return;
-        }
-        
-        Speech.speak(chunks[chunkIndex], {
+      if (Platform.OS !== 'android') {
+        // iOS and Web do NOT have character limits and can glitch if chunked unnecessarily.
+        Speech.speak(cleanText, {
+          language: 'en-US',
           rate: 0.9,
           pitch: 1.0,
-          onDone: () => {
-            chunkIndex++;
-            // Small timeout prevents iOS audio session crashing between chunks
-            setTimeout(speakNext, 50);
-          },
+          onDone: () => setIsPlaying(false),
           onError: () => {
             setIsPlaying(false);
             Speech.stop();
           }
         });
-      };
+      } else {
+        // Android ONLY: Splitting text into safe pieces at word boundaries
+        const words = cleanText.split(' ');
+        const chunks = [];
+        let currentChunk = '';
+        
+        words.forEach(word => {
+          if (currentChunk.length + word.length > 2000) {
+            chunks.push(currentChunk.trim());
+            currentChunk = word + ' ';
+          } else {
+            currentChunk += word + ' ';
+          }
+        });
+        if (currentChunk.trim()) chunks.push(currentChunk.trim());
 
-      speakNext();
+        let chunkIndex = 0;
+
+        const speakNext = () => {
+          if (chunkIndex >= chunks.length || !isPlaying) {
+            setIsPlaying(false);
+            return;
+          }
+          
+          Speech.speak(chunks[chunkIndex], {
+            language: 'en-US',
+            rate: 0.9,
+            pitch: 1.0,
+            onDone: () => {
+              chunkIndex++;
+              setTimeout(speakNext, 50);
+            },
+            onError: () => {
+              setIsPlaying(false);
+              Speech.stop();
+            }
+          });
+        };
+
+        speakNext();
+      }
     }
   };
 
