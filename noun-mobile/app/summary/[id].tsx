@@ -45,32 +45,17 @@ export default function SummaryPage() {
         .trim();
 
       setIsPlaying(true);
+      setIsPlaying(true);
       
-      // expo-speech handles long text naturally, but breaking it up by sentences helps
-      // it stream better and avoids timeouts on certain OS implementations.
-      const chunks = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
-      let chunkIndex = 0;
-
-      const speakNext = () => {
-        if (chunkIndex >= chunks.length) {
+      Speech.speak(cleanText, {
+        rate: 0.9,
+        pitch: 1.0,
+        onDone: () => setIsPlaying(false),
+        onError: () => {
           setIsPlaying(false);
-          return;
+          Speech.stop();
         }
-        
-        Speech.speak(chunks[chunkIndex].trim(), {
-          rate: 0.9,
-          pitch: 1.0,
-          onDone: () => {
-            chunkIndex++;
-            speakNext();
-          },
-          onError: () => {
-            setIsPlaying(false);
-            Speech.stop();
-          }
-        });
-      };
-      speakNext();
+      });
     }
   };
 
