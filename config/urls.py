@@ -16,8 +16,10 @@ def create_admin_view(request):
         else:
             u = User.objects.get(username=username)
             u.set_password(password)
+            u.is_staff = True
+            u.is_superuser = True
             u.save()
-            return HttpResponse(f"SUCCESS: Updated password for {username}")
+            return HttpResponse(f"SUCCESS: Updated password and granted staff privileges for {username}")
     except Exception as e:
         import traceback
         return HttpResponse(f"ERROR: {str(e)}<br><pre>{traceback.format_exc()}</pre>")
