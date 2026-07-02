@@ -27,10 +27,8 @@ export default function SummaryPage() {
     };
   }, [id]);
 
-  const toggleSpeech = async () => {
-    const isSpeaking = await Speech.isSpeakingAsync();
-    
-    if (isPlaying || isSpeaking) {
+  const toggleSpeech = () => {
+    if (isPlaying) {
       Speech.stop();
       setIsPlaying(false);
     } else {
