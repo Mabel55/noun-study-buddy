@@ -54,15 +54,25 @@ from langchain_core.prompts import PromptTemplate
 from courses.models import Course, Summary, Question, FillInTheGap, PopQuestion
 
 from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 # ── LLM Setup ─────────────────────────────────────────────────────────────────
 openai_key = os.environ.get("OPENAI_API_KEY")
+gemini_key = os.environ.get("GEMINI_API_KEY")
+
 if openai_key:
     llm = ChatOpenAI(
         model="gpt-4o-mini",
         temperature=0.1,
         max_tokens=4000,
         api_key=openai_key
+    )
+elif gemini_key:
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-1.5-flash",
+        temperature=0.1,
+        max_tokens=4000,
+        google_api_key=gemini_key
     )
 else:
     llm = ChatGroq(

@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from .models import Course, Summary
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
@@ -64,12 +65,21 @@ def chat_with_tutor(request):
             
     try:
         openai_key = os.environ.get("OPENAI_API_KEY")
+        gemini_key = os.environ.get("GEMINI_API_KEY")
+        
         if openai_key:
             llm = ChatOpenAI(
                 model="gpt-4o-mini",
                 temperature=0.3,
                 max_tokens=1000,
                 api_key=openai_key
+            )
+        elif gemini_key:
+            llm = ChatGoogleGenerativeAI(
+                model="gemini-1.5-flash",
+                temperature=0.3,
+                max_tokens=1000,
+                google_api_key=gemini_key
             )
         else:
             llm = ChatGroq(
