@@ -3,27 +3,49 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, SafeAreaView } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { cacheCourses, getCachedCourses, getLastSyncTime, formatTimeAgo, checkIsOnline } from '../../utils/offlineStorage';
 
 const API_URL = 'https://noun-study-buddy.onrender.com/api/courses/'; 
 
 export default function CourseDashboard() {
-  const [courses, setCourses] = useState([]);
+  const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
+  const [lastSync, setLastSync] = useState<string | null>(null);
   const { colors, isDark, toggleTheme } = useTheme();
   const { isLoggedIn, user } = useAuth();
 
   useEffect(() => {
-    fetch(API_URL)
-      .then((response) => response.json())
-      .then((data) => {
-        setCourses(data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching courses:", error);
-        setLoading(false);
-      });
+    loadCourses();
   }, []);
+
+  const loadCourses = async () => {
+    try {
+      // Try fetching from API first
+      const response = await fetch(API_URL);
+      const data = await response.json();
+      setCourses(data);
+      setIsOffline(false);
+      setLoading(false);
+
+      // Silently cache for offline use
+      await cacheCourses(data);
+    } catch (error) {
+      console.log('API fetch failed, trying cache...');
+      
+      // Fetch failed — try loading from cache
+      const cached = await getCachedCourses();
+      if (cached && cached.length > 0) {
+        setCourses(cached);
+        setIsOffline(true);
+        
+        // Get last sync time for display
+        const syncTime = await getLastSyncTime();
+        setLastSync(syncTime);
+      }
+      setLoading(false);
+    }
+  };
 
   const renderCourseCard = ({ item }: any) => {
     const qCount = (item.cbt_questions?.length || 0) + (item.pop_questions?.length || 0) + (item.fill_questions?.length || 0);
@@ -78,8 +100,38 @@ export default function CourseDashboard() {
         </View>
       </View>
 
+      {/* Offline Banner */}
+      {isOffline && (
+        <View style={[styles.offlineBanner, { backgroundColor: isDark ? '#3d2a1a' : '#fff3e0' }]}>
+          <Text style={[styles.offlineBannerText, { color: isDark ? '#ffb74d' : '#e65100' }]}>
+            📥 Offline Mode — showing cached data
+          </Text>
+          {lastSync && (
+            <Text style={[styles.offlineSyncText, { color: isDark ? '#ffcc80' : '#f57c00' }]}>
+              Last synced: {formatTimeAgo(lastSync)}
+            </Text>
+          )}
+        </View>
+      )}
+
       {loading ? (
         <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 50 }} />
+      ) : courses.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={{ fontSize: 48, marginBottom: 12 }}>📡</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>No courses available</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
+            {isOffline ? 'Connect to the internet to load courses for the first time.' : 'No courses found on the server.'}
+          </Text>
+          {isOffline && (
+            <TouchableOpacity 
+              style={[styles.retryBtn, { backgroundColor: colors.accent }]} 
+              onPress={() => { setLoading(true); loadCourses(); }}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>🔄 Retry</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       ) : (
         <FlatList
           data={courses}
@@ -101,7 +153,7 @@ const styles = StyleSheet.create({
     padding: 24,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
-    marginBottom: 16,
+    marginBottom: 0,
   },
   headerTop: {
     flexDirection: 'row',
@@ -135,8 +187,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
   },
+  offlineBanner: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  offlineBannerText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  offlineSyncText: {
+    fontSize: 11,
+  },
   listContainer: {
     paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 24,
   },
   card: {
@@ -183,5 +250,27 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  retryBtn: {
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
   },
 });
