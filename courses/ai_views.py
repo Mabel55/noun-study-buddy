@@ -64,30 +64,22 @@ def chat_with_tutor(request):
             langchain_messages.append(AIMessage(content=msg.get('content', '')))
             
     try:
-        openai_key = os.environ.get("OPENAI_API_KEY")
-        gemini_key = os.environ.get("GEMINI_API_KEY")
+        available_llms = []
         
+        openai_key = os.environ.get("OPENAI_API_KEY")
         if openai_key:
-            llm = ChatOpenAI(
-                model="gpt-4o-mini",
-                temperature=0.3,
-                max_tokens=1000,
-                api_key=openai_key
-            )
-        elif gemini_key:
-            llm = ChatGoogleGenerativeAI(
-                model="gemini-2.5-flash",
-                temperature=0.3,
-                max_tokens=1000,
-                google_api_key=gemini_key
-            )
-        else:
-            llm = ChatGroq(
-                model="llama-3.3-70b-versatile",
-                temperature=0.3,
-                max_tokens=1000,
-                api_key=os.environ.get("GROQ_API_KEY", "fallback-key")
-            )
+            available_llms.append(ChatOpenAI(model="gpt-4o-mini", temperature=0.3, max_tokens=1000, api_key=openai_key))
+            
+        gemini_key = os.environ.get("GEMINI_API_KEY")
+        if gemini_key:
+            available_llms.append(ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3, max_tokens=1000, google_api_key=gemini_key))
+            
+        available_llms.append(ChatGroq(model="llama-3.3-70b-versatile", temperature=0.3, max_tokens=1000, api_key=os.environ.get("GROQ_API_KEY", "fallback-key")))
+        
+        llm = available_llms[0]
+        if len(available_llms) > 1:
+            llm = llm.with_fallbacks(available_llms[1:])
+            
         response = llm.invoke(langchain_messages)
         return Response({
             'reply': response.content
