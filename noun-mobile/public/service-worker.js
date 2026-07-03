@@ -1,4 +1,4 @@
-const CACHE_NAME = 'noun-study-buddy-v1';
+const CACHE_NAME = 'noun-study-buddy-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
