@@ -65,7 +65,7 @@ if openai_key:
 
 gemini_key = os.environ.get("GEMINI_API_KEY")
 if gemini_key:
-    available_llms.append(ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.1, max_tokens=4000, google_api_key=gemini_key))
+    available_llms.append(ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.1, max_tokens=4000, google_api_key=gemini_key))
 
 available_llms.append(ChatGroq(model="llama3-8b-8192", temperature=0.1, max_tokens=4000, api_key=os.environ.get("GROQ_API_KEY", "fallback-key")))
 
