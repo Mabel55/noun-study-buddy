@@ -43,6 +43,7 @@ load_dotenv()
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
+from django.db import connection
 
 from fpdf import FPDF
 from django.conf import settings
@@ -632,6 +633,7 @@ def process_pdf(full_pdf_path: str, filename: str):
     course_title = course_info["course_title"]
     exam_type = course_info["exam_type"]
 
+    connection.close()
     course, created = Course.objects.update_or_create(
         code=course_code,
         defaults={
@@ -646,6 +648,7 @@ def process_pdf(full_pdf_path: str, filename: str):
     summary_text = generate_summary(doc, course_info)
     pdf_path = create_summary_pdf(course_code, course_title, summary_text)
 
+    connection.close()
     Summary.objects.update_or_create(
         course=course,
         defaults={
@@ -667,6 +670,7 @@ def process_pdf(full_pdf_path: str, filename: str):
         print("\n  [A] Multiple Choice Questions (30)")
         mcq_list = generate_mcq(doc, course_info, num_questions=30)
 
+        connection.close()
         saved_mcq = 0
         for q in mcq_list:
             try:
@@ -712,6 +716,7 @@ def process_pdf(full_pdf_path: str, filename: str):
         print("\n  [B] Fill-in-the-Gap Questions (15)")
         gap_list = generate_fill_in_gaps(doc, course_info, num_questions=15)
 
+        connection.close()
         saved_gap = 0
         for g in gap_list:
             try:
@@ -730,6 +735,7 @@ def process_pdf(full_pdf_path: str, filename: str):
         print("\n  [A] POP Theory Questions (6)")
         pop_list = generate_pop_questions(doc, course_info, num_questions=6)
 
+        connection.close()
         saved_pop = 0
         for q in pop_list:
             try:
