@@ -74,7 +74,7 @@ def chat_with_tutor(request):
         if gemini_key:
             available_llms.append(ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.3, max_tokens=1000, google_api_key=gemini_key))
             
-        available_llms.append(ChatGroq(model="mixtral-8x7b-32768", temperature=0.3, max_tokens=1000, api_key=os.environ.get("GROQ_API_KEY", "fallback-key")))
+        available_llms.append(ChatGroq(model="llama3-8b-8192", temperature=0.3, max_tokens=1000, api_key=os.environ.get("GROQ_API_KEY", "fallback-key")))
         
         llm = available_llms[0]
         if len(available_llms) > 1:
