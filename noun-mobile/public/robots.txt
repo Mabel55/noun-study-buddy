@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# Exclude private app routes or API paths if necessary
+Disallow: /auth/
+
+Sitemap: https://nounstudybuddy.com/sitemap.xml
