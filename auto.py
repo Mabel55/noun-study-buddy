@@ -53,14 +53,24 @@ from langchain_core.prompts import PromptTemplate
 
 from courses.models import Course, Summary, Question, FillInTheGap, PopQuestion
 
+from langchain_openai import ChatOpenAI
+
 # ── LLM Setup ─────────────────────────────────────────────────────────────────
-# Free at https://console.groq.com — 14,400 requests/day
-llm = ChatGroq(
-    model="llama-3.1-8b-instant",
-    temperature=0.1,
-    max_tokens=4000,
-    api_key=os.environ.get("GROQ_API_KEY")
-)
+openai_key = os.environ.get("OPENAI_API_KEY")
+if openai_key:
+    llm = ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0.1,
+        max_tokens=4000,
+        api_key=openai_key
+    )
+else:
+    llm = ChatGroq(
+        model="llama-3.3-70b-versatile",
+        temperature=0.1,
+        max_tokens=4000,
+        api_key=os.environ.get("GROQ_API_KEY")
+    )
 
 # ── Course Type Detection ─────────────────────────────────────────────────────
 # These prefixes are ALWAYS CBT regardless of level number
