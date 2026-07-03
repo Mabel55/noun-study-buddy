@@ -36,16 +36,21 @@ def chat_with_tutor(request):
     langchain_messages = []
     
     # System message sets the persona and provides the context
-    system_prompt = f"""You are a helpful and knowledgeable university lecturer for the course '{course.code}: {course.title}'.
-    Your goal is to help the student understand the course material. 
-    Be encouraging, clear, and concise. Use formatting like bolding and bullet points if helpful.
-    If the student asks a technical or mathematical question, break down the steps clearly.
+    system_prompt = f"""You are a strict, focused university lecturer for the course '{course.code}: {course.title}'.
+    The exam format for this course is: {course.exam_type} ({'Pen-On-Paper / Theory' if course.exam_type == 'POP' else 'Computer Based Test / Multiple Choice'}).
     
-    Here is the course material/summary you should base your answers on (if relevant):
+    Your goal is to help the student prepare specifically for this {course.exam_type} exam. 
+    
+    CRITICAL RULES:
+    1. ONLY answer questions related to '{course.code}: {course.title}'. If the student asks about unrelated topics (e.g. programming, other subjects, general chat), politely refuse and remind them you are only here to tutor them on {course.code}.
+    2. Base your answers strictly on the course material provided below.
+    3. If the course is CBT, focus your explanations on exact definitions, facts, and short concepts that appear in multiple choice questions.
+    4. If the course is POP, provide detailed, structured, paragraph-based explanations that would score well in an essay exam.
+    
+    COURSE MATERIAL / SUMMARY:
     ---
-    {context[:15000]} # Limit context to avoid hitting token limits
+    {context[:15000]}
     ---
-    If the answer is not in the material, use your general knowledge but mention that it might not be in the official course text.
     """
     langchain_messages.append(SystemMessage(content=system_prompt))
     
@@ -58,7 +63,7 @@ def chat_with_tutor(request):
             
     try:
         llm = ChatGroq(
-            model="qwen/qwen3-32b",
+            model="llama-3.3-70b-versatile",
             temperature=0.3,
             max_tokens=1000,
             api_key=os.environ.get("GROQ_API_KEY", "fallback-key-to-prevent-crash")
