@@ -175,4 +175,59 @@ class ExamSchedule(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.username} - {self.course.code} on {self.exam_date}"
+        return f"{self.user.username} - {self.course.code} on {self.exam_date}"
+
+
+# ==============================================================================
+# PHASE 6: NOUN NEWS & ACTIVITIES
+# ==============================================================================
+
+class NewsArticle(models.Model):
+    CATEGORY_CHOICES = [
+        ('TMA', 'TMA Updates'),
+        ('EXAM', 'Exam Timetable'),
+        ('GENERAL', 'General NOUN News'),
+        ('EVENTS', 'Campus Activities'),
+    ]
+    title = models.CharField(max_length=200)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    content = models.TextField()
+    date_posted = models.DateTimeField(auto_now_add=True)
+    is_important = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-date_posted']
+
+    def __str__(self):
+        return f"[{self.category}] {self.title}"
+
+
+# ==============================================================================
+# PHASE 7: COURSE COMMUNITIES (FORUMS)
+# ==============================================================================
+
+class DiscussionThread(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='threads')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+
+class DiscussionReply(models.Model):
+    thread = models.ForeignKey(DiscussionThread, on_delete=models.CASCADE, related_name='replies')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Reply by {self.user.username} on {self.thread.title}"

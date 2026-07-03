@@ -11,7 +11,10 @@ from .views import (
     MockExamViewSet, 
     VerifyPaymentView, 
     my_purchased_courses,
-    get_summary_by_course
+    get_summary_by_course,
+    NewsArticleViewSet,
+    DiscussionThreadViewSet,
+    DiscussionReplyViewSet
 )
 
 from .dashboard_views import (
@@ -31,6 +34,9 @@ router.register(r'fill-in-gaps', FillInTheGapViewSet, basename='fill-in-gaps')  
 router.register(r'pop-questions', PopQuestionViewSet, basename='pop-questions')  # 👈 Registered here
 router.register(r'summaries', SummaryViewSet)
 router.register(r'mock-exams', MockExamViewSet)
+router.register(r'news', NewsArticleViewSet)
+router.register(r'discussion-threads', DiscussionThreadViewSet, basename='discussion-thread')
+router.register(r'discussion-replies', DiscussionReplyViewSet, basename='discussion-reply')
 
 urlpatterns = [
     # This includes all the standard routes (courses, questions, fill-in-gaps, pop-questions, etc.)

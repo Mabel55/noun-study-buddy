@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Course, Question, Summary, MockExam, Purchase, PopQuestion, FillInTheGap
+from .models import Course, Question, Summary, MockExam, Purchase, PopQuestion, FillInTheGap, NewsArticle, DiscussionThread, DiscussionReply
 
 # 1. Course Admin
 class CourseAdmin(admin.ModelAdmin):
@@ -24,6 +24,10 @@ class PurchaseAdmin(admin.ModelAdmin):
     list_display = ('user', 'course', 'date_purchased') 
     list_filter = ('course', 'date_purchased')
 
+class NewsArticleAdmin(admin.ModelAdmin):
+    list_display = ('title', 'category', 'date_posted', 'is_important')
+    list_filter = ('category', 'is_important')
+
 # Register your models
 admin.site.register(Course, CourseAdmin)
 admin.site.register(Question, QuestionAdmin)
@@ -32,3 +36,6 @@ admin.site.register(MockExam, MockExamAdmin)
 admin.site.register(Purchase, PurchaseAdmin)
 admin.site.register(FillInTheGap)
 admin.site.register(PopQuestion)
+admin.site.register(NewsArticle, NewsArticleAdmin)
+admin.site.register(DiscussionThread)
+admin.site.register(DiscussionReply)

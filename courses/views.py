@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
 # 1. IMPORT ALL YOUR MODELS (Added FillInTheGap and PopQuestion)
-from .models import Course, Question, Summary, MockExam, Purchase, FillInTheGap, PopQuestion
+from .models import Course, Question, Summary, MockExam, Purchase, FillInTheGap, PopQuestion, NewsArticle, DiscussionThread, DiscussionReply
 
 # 2. IMPORT ALL YOUR SERIALIZERS (Added FillInTheGapSerializer and PopQuestionSerializer)
 from .serializers import (
@@ -16,7 +16,10 @@ from .serializers import (
     SummarySerializer, 
     MockExamSerializer,
     FillInTheGapSerializer,
-    PopQuestionSerializer
+    PopQuestionSerializer,
+    NewsArticleSerializer,
+    DiscussionThreadSerializer,
+    DiscussionReplySerializer
 )
 
 # ==========================
@@ -79,6 +82,38 @@ class MockExamViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MockExamSerializer
     permission_classes = [AllowAny]
 
+class NewsArticleViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = NewsArticle.objects.all()
+    serializer_class = NewsArticleSerializer
+    permission_classes = [AllowAny]
+
+class DiscussionThreadViewSet(viewsets.ModelViewSet):
+    serializer_class = DiscussionThreadSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = DiscussionThread.objects.all()
+        course_id = self.request.query_params.get('course_id')
+        if course_id:
+            queryset = queryset.filter(course_id=course_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class DiscussionReplyViewSet(viewsets.ModelViewSet):
+    serializer_class = DiscussionReplySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = DiscussionReply.objects.all()
+        thread_id = self.request.query_params.get('thread_id')
+        if thread_id:
+            queryset = queryset.filter(thread_id=thread_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 # ==========================
 # PAYMENT & PROFILE FEATURES

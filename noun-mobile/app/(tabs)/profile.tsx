@@ -55,6 +55,17 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {/* Features */}
+        <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>FEATURES</Text>
+
+        <TouchableOpacity style={[styles.settingRow, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => router.push('/planner' as any)}>
+          <Text style={{ fontSize: 20 }}>📅</Text>
+          <View style={{ flex: 1, marginLeft: 15 }}>
+            <Text style={[styles.settingLabel, { color: colors.text }]}>Study Planner</Text>
+            <Text style={{ fontSize: 12, color: colors.textMuted }}>Manage your exam schedule</Text>
+          </View>
+        </TouchableOpacity>
+
         {/* Settings */}
         <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>SETTINGS</Text>
 

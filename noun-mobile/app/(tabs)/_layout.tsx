@@ -7,7 +7,7 @@ const tabs = [
   { name: '/', label: 'Home', icon: '🏠' },
   { name: '/dashboard', label: 'Dashboard', icon: '📊' },
   { name: '/leaderboard', label: 'Ranks', icon: '🏆' },
-  { name: '/planner', label: 'Planner', icon: '📅' },
+  { name: '/news', label: 'News', icon: '📰' },
   { name: '/profile', label: 'Profile', icon: '👤' },
 ];
 

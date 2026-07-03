@@ -168,6 +168,20 @@ export default function CourseDetails() {
           </View>
         </TouchableOpacity>
 
+        {/* 5. COURSE COMMUNITY */}
+        <TouchableOpacity 
+          style={[styles.actionCard, { backgroundColor: colors.card, marginBottom: 30 }]} 
+          onPress={() => router.push(`/discussion/${id}` as any)}
+        >
+          <View style={[styles.iconCircle, {backgroundColor: '#e8f5e9'}]}>
+            <Text style={{fontSize: 24}}>👥</Text>
+          </View>
+          <View style={{flex: 1}}>
+            <Text style={[styles.actionTitle, { color: colors.text }]}>Course Community</Text>
+            <Text style={{fontSize: 12, color: colors.textMuted}}>Discuss with other students</Text>
+          </View>
+        </TouchableOpacity>
+
       </ScrollView>
     </SafeAreaView>
   );

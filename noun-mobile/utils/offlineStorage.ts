@@ -12,6 +12,7 @@ import NetInfo from '@react-native-community/netinfo';
 const KEYS = {
   COURSES: '@noun_cached_courses',
   COURSE_DETAIL: (id: string | number) => `@noun_cached_course_${id}`,
+  NEWS: '@noun_cached_news',
   LAST_SYNC: '@noun_last_sync',
 };
 
@@ -82,6 +83,26 @@ export async function getCachedCourseDetail(id: string | number): Promise<any | 
     return data ? JSON.parse(data) : null;
   } catch (error) {
     console.warn(`Failed to read cached course ${id}:`, error);
+    return null;
+  }
+}
+
+// ── News Cache ───────────────────────────────────────────────────────────────
+
+export async function cacheNews(news: any[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.NEWS, JSON.stringify(news));
+  } catch (error) {
+    console.warn('Failed to cache news:', error);
+  }
+}
+
+export async function getCachedNews(): Promise<any[] | null> {
+  try {
+    const data = await AsyncStorage.getItem(KEYS.NEWS);
+    return data ? JSON.parse(data) : null;
+  } catch (error) {
+    console.warn('Failed to read cached news:', error);
     return null;
   }
 }

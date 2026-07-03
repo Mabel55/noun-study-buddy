@@ -1,5 +1,24 @@
 from rest_framework import serializers
-from .models import Course, Question, MockExam, Summary, PopQuestion, FillInTheGap
+from .models import Course, Question, MockExam, Summary, PopQuestion, FillInTheGap, NewsArticle, DiscussionThread, DiscussionReply
+
+class NewsArticleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NewsArticle
+        fields = '__all__'
+
+class DiscussionReplySerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    class Meta:
+        model = DiscussionReply
+        fields = '__all__'
+
+class DiscussionThreadSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    replies_count = serializers.IntegerField(source='replies.count', read_only=True)
+    
+    class Meta:
+        model = DiscussionThread
+        fields = '__all__'
 
 # 1. Serializer for Summaries
 class SummarySerializer(serializers.ModelSerializer):
