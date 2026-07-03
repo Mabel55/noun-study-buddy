@@ -141,7 +141,7 @@ def call_llm(chain, inputs: dict, retries=3, wait=45) -> str:
     Calls the LLM with automatic retry on failure.
     Returns empty string if all retries fail.
     """
-    time.sleep(5)  # Prevent Groq rate limit exhaustion for the 70B model
+    time.sleep(15)  # Prevent Gemini & Groq Free Tier rate limits (15 RPM max)
     for attempt in range(1, retries + 1):
         try:
             response = chain.invoke(inputs)
