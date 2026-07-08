@@ -22,7 +22,13 @@ export default function CourseDashboard() {
   const loadCourses = async () => {
     try {
       // Try fetching from API first
-      const response = await fetch(API_URL);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      
+      const response = await fetch(API_URL, { signal: controller.signal as any });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
       setCourses(data);
       setIsOffline(false);
