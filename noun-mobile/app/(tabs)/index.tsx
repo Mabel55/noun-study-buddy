@@ -37,7 +37,7 @@ export default function CourseDashboard() {
     // 2. Fetch fresh data from API in the background
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout to allow Render to wake up
       
       const response = await fetch(API_URL, { signal: controller.signal as any });
       clearTimeout(timeoutId);

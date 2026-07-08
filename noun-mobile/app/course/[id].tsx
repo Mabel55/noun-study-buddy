@@ -33,7 +33,7 @@ export default function CourseDetails() {
     // 2. Fetch fresh data from API in background
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
       
       const response = await fetch(`https://noun-study-buddy.onrender.com/api/courses/${id}/`, { signal: controller.signal as any });
       clearTimeout(timeoutId);

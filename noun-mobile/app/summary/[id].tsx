@@ -28,7 +28,7 @@ export default function SummaryPage() {
     // 2. Fetch fresh data in background
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
       
       const res = await fetch(`https://noun-study-buddy.onrender.com/api/summaries/course/${id}/`, { signal: controller.signal as any });
       clearTimeout(timeoutId);
