@@ -73,7 +73,7 @@ def chat_with_tutor(request):
         gemini_key = os.environ.get("GEMINI_API_KEY")
         
         # Make Groq the primary model since Gemini is exhausted
-        available_llms.append(ChatGroq(model="llama3-8b-8192", temperature=0.3, max_tokens=1000, api_key=os.environ.get("GROQ_API_KEY", "fallback-key")))
+        available_llms.append(ChatGroq(model="mixtral-8x7b-32768", temperature=0.3, max_tokens=1000, api_key=os.environ.get("GROQ_API_KEY", "fallback-key")))
         
         if gemini_key:
             available_llms.append(ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.3, max_tokens=1000, google_api_key=gemini_key))
