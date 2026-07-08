@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, Linking } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
+import { cacheSummary, getCachedSummary } from '../../utils/offlineStorage';
 
 export default function SummaryPage() {
   const { id } = useLocalSearchParams();
@@ -11,14 +12,42 @@ export default function SummaryPage() {
   const { colors } = useTheme();
 
   useEffect(() => {
-    fetch(`https://noun-study-buddy.onrender.com/api/summaries/course/${id}/`)
-      .then(res => res.json())
-      .then(data => {
-        setCourseData(data);
-        setLoading(false);
-      })
-      .catch(err => console.error(err));
+    loadSummary();
   }, [id]);
+
+  const loadSummary = async () => {
+    // 1. Optimistic load from cache
+    const cached = await getCachedSummary(id as string);
+    if (cached) {
+      setCourseData(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    // 2. Fetch fresh data in background
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const res = await fetch(`https://noun-study-buddy.onrender.com/api/summaries/course/${id}/`, { signal: controller.signal as any });
+      clearTimeout(timeoutId);
+      
+      if (!res.ok) throw new Error('Network response not ok');
+      const data = await res.json();
+      
+      setCourseData(data);
+      setLoading(false);
+      
+      // Silently cache
+      await cacheSummary(id as string, data);
+    } catch (err) {
+      console.log('Summary API fetch failed behind the scenes.');
+      if (!cached) {
+        setLoading(false); // Stop spinner if nothing loaded
+      }
+    }
+  };
 
   if (loading) {
     return <SafeAreaView style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.accent} /></SafeAreaView>;

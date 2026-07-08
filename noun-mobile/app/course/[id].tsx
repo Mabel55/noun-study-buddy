@@ -20,10 +20,27 @@ export default function CourseDetails() {
   }, [id]);
 
   const loadCourseData = async () => {
+    // 1. Optimistic load from cache
+    const cached = await getCachedCourseDetail(id as string);
+    if (cached) {
+      setCourseData(cached);
+      setIsOffline(true);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    // 2. Fetch fresh data from API in background
     try {
-      // Try fetching from API first
-      const response = await fetch(`https://noun-study-buddy.onrender.com/api/courses/${id}/`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(`https://noun-study-buddy.onrender.com/api/courses/${id}/`, { signal: controller.signal as any });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) throw new Error('Network response not ok');
       const data = await response.json();
+      
       setCourseData(data);
       setIsOffline(false);
       setLoading(false);
@@ -31,15 +48,10 @@ export default function CourseDetails() {
       // Silently cache for offline use
       await cacheCourseDetail(id as string, data);
     } catch (error) {
-      console.log(`API fetch failed for course ${id}, trying cache...`);
-
-      // Fetch failed — try loading from cache
-      const cached = await getCachedCourseDetail(id as string);
-      if (cached) {
-        setCourseData(cached);
-        setIsOffline(true);
+      console.log(`API fetch failed behind the scenes for course ${id}`);
+      if (!cached) {
+        setLoading(false);
       }
-      setLoading(false);
     }
   };
 

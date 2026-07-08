@@ -12,6 +12,7 @@ import NetInfo from '@react-native-community/netinfo';
 const KEYS = {
   COURSES: '@noun_cached_courses',
   COURSE_DETAIL: (id: string | number) => `@noun_cached_course_${id}`,
+  SUMMARY: (id: string | number) => `@noun_cached_summary_${id}`,
   NEWS: '@noun_cached_news',
   LAST_SYNC: '@noun_last_sync',
 };
@@ -103,6 +104,26 @@ export async function getCachedNews(): Promise<any[] | null> {
     return data ? JSON.parse(data) : null;
   } catch (error) {
     console.warn('Failed to read cached news:', error);
+    return null;
+  }
+}
+
+// ── Summary Cache ────────────────────────────────────────────────────────────
+
+export async function cacheSummary(id: string | number, data: any): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.SUMMARY(id), JSON.stringify(data));
+  } catch (error) {
+    console.warn(`Failed to cache summary ${id}:`, error);
+  }
+}
+
+export async function getCachedSummary(id: string | number): Promise<any | null> {
+  try {
+    const data = await AsyncStorage.getItem(KEYS.SUMMARY(id));
+    return data ? JSON.parse(data) : null;
+  } catch (error) {
+    console.warn(`Failed to read cached summary ${id}:`, error);
     return null;
   }
 }
