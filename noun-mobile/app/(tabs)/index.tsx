@@ -20,8 +20,22 @@ export default function CourseDashboard() {
   }, []);
 
   const loadCourses = async () => {
+    // 1. Instantly load from cache if available (Optimistic Loading)
+    const cached = await getCachedCourses();
+    let hasCache = false;
+    if (cached && cached.length > 0) {
+      setCourses(cached);
+      setLoading(false);
+      setIsOffline(true);
+      hasCache = true;
+      const syncTime = await getLastSyncTime();
+      setLastSync(syncTime);
+    } else {
+      setLoading(true); // Only show spinner if we have no cache
+    }
+
+    // 2. Fetch fresh data from API in the background
     try {
-      // Try fetching from API first
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
       
@@ -30,26 +44,19 @@ export default function CourseDashboard() {
       
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
+      
+      // Update UI with fresh data
       setCourses(data);
       setIsOffline(false);
       setLoading(false);
 
-      // Silently cache for offline use
+      // Silently cache for next time
       await cacheCourses(data);
     } catch (error) {
-      console.log('API fetch failed, trying cache...');
-      
-      // Fetch failed — try loading from cache
-      const cached = await getCachedCourses();
-      if (cached && cached.length > 0) {
-        setCourses(cached);
-        setIsOffline(true);
-        
-        // Get last sync time for display
-        const syncTime = await getLastSyncTime();
-        setLastSync(syncTime);
+      console.log('API fetch failed behind the scenes.');
+      if (!hasCache) {
+        setLoading(false); // Make sure spinner stops if everything fails
       }
-      setLoading(false);
     }
   };
 
