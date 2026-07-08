@@ -66,7 +66,7 @@ if openai_key:
 gemini_key = os.environ.get("GEMINI_API_KEY")
 
 # Make Groq the primary model since Gemini is exhausted
-available_llms.append(ChatGroq(model="llama-3.1-8b-instant", temperature=0.1, max_tokens=4000, api_key=os.environ.get("GROQ_API_KEY", "fallback-key")))
+available_llms.append(ChatGroq(model="llama-3.1-70b-versatile", temperature=0.1, max_tokens=4000, api_key=os.environ.get("GROQ_API_KEY", "fallback-key")))
 
 if gemini_key:
     available_llms.append(ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.1, max_tokens=4000, google_api_key=gemini_key))
