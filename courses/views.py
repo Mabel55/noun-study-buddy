@@ -12,6 +12,7 @@ from .models import Course, Question, Summary, MockExam, Purchase, FillInTheGap,
 # 2. IMPORT ALL YOUR SERIALIZERS (Added FillInTheGapSerializer and PopQuestionSerializer)
 from .serializers import (
     CourseSerializer, 
+    CourseListSerializer,
     QuestionSerializer, 
     SummarySerializer, 
     MockExamSerializer,
@@ -28,8 +29,12 @@ from .serializers import (
 
 class CourseViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Course.objects.all()
-    serializer_class = CourseSerializer
     permission_classes = [AllowAny]
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return CourseListSerializer
+        return CourseSerializer
 
 
 class QuestionViewSet(viewsets.ReadOnlyModelViewSet):

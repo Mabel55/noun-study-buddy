@@ -68,7 +68,9 @@ export default function CourseDashboard() {
   };
 
   const renderCourseCard = ({ item }: any) => {
-    const qCount = (item.cbt_questions?.length || 0) + (item.pop_questions?.length || 0) + (item.fill_questions?.length || 0);
+    const qCount = (item.cbt_questions_count || item.cbt_questions?.length || 0) + 
+                   (item.pop_questions_count || item.pop_questions?.length || 0) + 
+                   (item.fill_questions_count || item.fill_questions?.length || 0);
     return (
       <TouchableOpacity 
         style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.shadow }]} 
