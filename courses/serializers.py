@@ -72,16 +72,10 @@ class CourseListSerializer(serializers.ModelSerializer):
     # Only return summaries and mock exams, omit the thousands of questions to prevent OOM
     summaries = SummarySerializer(many=True, read_only=True, source='summary_set')
     mock_exams = MockExamSerializer(many=True, read_only=True, source='mockexam_set')
-    
-    # Just return the count for questions to display on the dashboard
-    cbt_questions_count = serializers.IntegerField(source='question_set.count', read_only=True)
-    pop_questions_count = serializers.IntegerField(source='popquestion_set.count', read_only=True)
-    fill_questions_count = serializers.IntegerField(source='fillinthegap_set.count', read_only=True)
 
     class Meta:
         model = Course
         fields = [
             'id', 'title', 'code', 'description', 'textbook', 'exam_type',
-            'summaries', 'mock_exams',
-            'cbt_questions_count', 'pop_questions_count', 'fill_questions_count'
+            'summaries', 'mock_exams'
         ]

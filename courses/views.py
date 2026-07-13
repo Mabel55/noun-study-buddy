@@ -28,8 +28,12 @@ from .serializers import (
 # ==========================
 
 class CourseViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Course.objects.all()
     permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        if self.action == 'list':
+            return Course.objects.prefetch_related('summary_set', 'mockexam_set')
+        return Course.objects.all()
 
     def get_serializer_class(self):
         if self.action == 'list':
