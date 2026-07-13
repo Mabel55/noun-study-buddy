@@ -8,7 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import Markdown from 'react-native-markdown-display';
 
-const BASE_URL = 'https://noun-study-buddy.onrender.com';
+const BASE_URL = 'https://noun-study-buddy-1.onrender.com';
 
 interface Message {
   role: 'user' | 'assistant';

@@ -122,3 +122,4 @@ export function useTheme() {
 }
 
 export { lightTheme, darkTheme };
+

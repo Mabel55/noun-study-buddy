@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const BASE_URL = 'https://noun-study-buddy.onrender.com';
+const BASE_URL = 'https://noun-study-buddy-1.onrender.com';
 
 interface UserData {
   pk: number;
@@ -144,3 +144,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   return useContext(AuthContext);
 }
+

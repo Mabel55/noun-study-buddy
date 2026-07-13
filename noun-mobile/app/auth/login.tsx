@@ -118,3 +118,4 @@ const styles = StyleSheet.create({
   registerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
   skipRow: { alignItems: 'center', marginTop: 20 },
 });
+

@@ -5,7 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { cacheCourses, getCachedCourses, getLastSyncTime, formatTimeAgo, checkIsOnline } from '../../utils/offlineStorage';
 
-const API_URL = 'https://noun-study-buddy.onrender.com/api/courses/'; 
+const API_URL = 'https://noun-study-buddy-1.onrender.com/api/courses/'; 
 
 export default function CourseDashboard() {
   const [courses, setCourses] = useState<any[]>([]);
@@ -39,7 +39,14 @@ export default function CourseDashboard() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout to allow Render to wake up
       
-      const response = await fetch(API_URL, { signal: controller.signal as any });
+      const response = await fetch(`${API_URL}?t=${Date.now()}`, { 
+        signal: controller.signal as any,
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
       clearTimeout(timeoutId);
       
       if (!response.ok) throw new Error('Network response was not ok');
@@ -287,3 +294,4 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
 });
+

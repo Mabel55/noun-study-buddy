@@ -120,3 +120,4 @@ const styles = StyleSheet.create({
   logoutBtn: { marginTop: 30, padding: 16, borderRadius: 14, borderWidth: 2, alignItems: 'center' },
   premiumBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, marginTop: 4 },
 });
+

@@ -4,7 +4,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'expo-router';
 
-const BASE_URL = 'https://noun-study-buddy.onrender.com';
+const BASE_URL = 'https://noun-study-buddy-1.onrender.com';
 
 export default function DashboardScreen() {
   const { colors } = useTheme();
@@ -264,3 +264,4 @@ const styles = StyleSheet.create({
   weakCourse: { fontSize: 12, fontWeight: 'bold', marginBottom: 4 },
   weakText: { fontSize: 14, lineHeight: 20, paddingRight: 60 },
 });
+

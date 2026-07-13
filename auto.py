@@ -59,17 +59,16 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 # ── LLM Setup ─────────────────────────────────────────────────────────────────
 available_llms = []
 
+# Use Groq as primary since Gemini has exhausted its quota
+available_llms.append(ChatGroq(model="llama-3.3-70b-versatile", temperature=0.1, max_tokens=4000, api_key=os.environ.get("GROQ_API_KEY", "fallback-key")))
+
+gemini_key = os.environ.get("GEMINI_API_KEY")
+if gemini_key:
+    available_llms.append(ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1, max_tokens=4000, google_api_key=gemini_key))
+
 openai_key = os.environ.get("OPENAI_API_KEY")
 if openai_key:
     available_llms.append(ChatOpenAI(model="gpt-4o-mini", temperature=0.1, max_tokens=4000, api_key=openai_key))
-
-gemini_key = os.environ.get("GEMINI_API_KEY")
-
-# Make Gemini 1.5 Flash (Instant) the primary model
-if gemini_key:
-    available_llms.append(ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.1, max_tokens=4000, google_api_key=gemini_key))
-
-available_llms.append(ChatGroq(model="llama-3.3-70b-versatile", temperature=0.1, max_tokens=4000, api_key=os.environ.get("GROQ_API_KEY", "fallback-key")))
 
 llm = available_llms[0]
 if len(available_llms) > 1:
@@ -138,12 +137,12 @@ def safe_parse_json(raw: str) -> list:
         return []
 
 
-def call_llm(chain, inputs: dict, retries=3, wait=45) -> str:
+def call_llm(chain, inputs: dict, retries=5, wait=65) -> str:
     """
     Calls the LLM with automatic retry on failure.
     Returns empty string if all retries fail.
     """
-    time.sleep(15)  # Prevent Gemini & Groq Free Tier rate limits (15 RPM max)
+    time.sleep(25)  # Prevent Gemini & Groq Free Tier rate limits
     for attempt in range(1, retries + 1):
         try:
             response = chain.invoke(inputs)
@@ -206,7 +205,7 @@ Text from cover pages:
 """
     prompt = PromptTemplate.from_template(template)
     chain = prompt | llm
-    raw = call_llm(chain, {"text": intro_text[:3000]}, wait=20)
+    raw = call_llm(chain, {"text": intro_text[:2000]}, wait=65)
 
     try:
         clean = raw.replace("```json", "").replace("```", "").strip()
@@ -343,11 +342,11 @@ Textbook section for {course_code}:
         chunk_summary = call_llm(
             chain,
             {
-                "text": chunk_text[:4500],
+                "text": chunk_text[:3000],
                 "course_code": course_code,
                 "course_title": course_title,
             },
-            wait=20
+            wait=65
         )
 
         if chunk_summary.strip():
@@ -372,7 +371,7 @@ def generate_mcq(doc, course_info: dict, num_questions=30) -> list:
     """
     course_code = course_info["course_code"]
     is_technical = course_info.get("is_technical", False)
-    text = sample_text_evenly(doc, sections=6, chars_per_section=2500)
+    text = sample_text_evenly(doc, sections=5, chars_per_section=1500)
 
     print(f"    Generating {num_questions} MCQs for {course_code}...")
 
@@ -425,7 +424,7 @@ Textbook content for {course_code}:
                 "course_code": course_code,
                 "extra": extra_instruction,
             },
-            wait=20
+            wait=65
         )
         batch = safe_parse_json(raw)
 
@@ -455,7 +454,7 @@ def generate_fill_in_gaps(doc, course_info: dict, num_questions=15) -> list:
     The blank is always represented by '______' (6 underscores).
     """
     course_code = course_info["course_code"]
-    text = sample_text_evenly(doc, sections=4, chars_per_section=2500)
+    text = sample_text_evenly(doc, sections=4, chars_per_section=1500)
 
     print(f"    Generating {num_questions} Fill-in-the-Gap questions for {course_code}...")
 
@@ -491,7 +490,7 @@ Textbook content for {course_code}:
     raw = call_llm(
         chain,
         {"text": text, "num": num_questions, "course_code": course_code},
-        wait=20
+        wait=65
     )
     questions = safe_parse_json(raw)
 
@@ -520,7 +519,7 @@ def generate_pop_questions(doc, course_info: dict, num_questions=6) -> list:
     course_code = course_info["course_code"]
     course_title = course_info["course_title"]
     is_technical = course_info.get("is_technical", False)
-    text = sample_text_evenly(doc, sections=4, chars_per_section=3000)
+    text = sample_text_evenly(doc, sections=4, chars_per_section=1500)
 
     print(f"    Generating {num_questions} POP theory questions for {course_code}...")
 
@@ -568,7 +567,7 @@ Textbook content for {course_code}:
             "course_title": course_title,
             "answer_instruction": answer_instruction,
         },
-        wait=20
+        wait=65
     )
     questions = safe_parse_json(raw)
     valid = [q for q in questions if q.get("question_text") and q.get("answer_text")]

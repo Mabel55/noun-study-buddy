@@ -4,7 +4,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'expo-router';
 
-const BASE_URL = 'https://noun-study-buddy.onrender.com';
+const BASE_URL = 'https://noun-study-buddy-1.onrender.com';
 
 export default function PlannerScreen() {
   const { colors } = useTheme();
@@ -261,3 +261,4 @@ const styles = StyleSheet.create({
 
   planBox: { borderTopWidth: 1, paddingTop: 12 },
 });
+

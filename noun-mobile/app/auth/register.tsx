@@ -143,3 +143,4 @@ const styles = StyleSheet.create({
   errorBox: { padding: 14, borderRadius: 12, marginBottom: 8 },
   loginRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
 });
+

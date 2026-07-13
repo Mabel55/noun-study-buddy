@@ -8,7 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatTimeAgo } from '../../utils/offlineStorage';
 
-const API_URL = 'https://noun-study-buddy.onrender.com/api/discussion-threads/';
+const API_URL = 'https://noun-study-buddy-1.onrender.com/api/discussion-threads/';
 
 export default function CourseDiscussion() {
   const { courseId } = useLocalSearchParams();

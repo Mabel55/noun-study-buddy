@@ -7,7 +7,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 
-const BASE_URL = 'https://noun-study-buddy.onrender.com';
+const BASE_URL = 'https://noun-study-buddy-1.onrender.com';
 
 export default function MockExamEngine() {
   const params = useLocalSearchParams(); 

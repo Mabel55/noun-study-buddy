@@ -1,4 +1,4 @@
-const CACHE_NAME = 'noun-study-buddy-v2';
+const CACHE_NAME = 'noun-study-buddy-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -38,6 +38,10 @@ self.addEventListener('fetch', (event) => {
   
   // Skip cross-origin requests, like those to the Render backend API
   if (!event.request.url.startsWith(self.location.origin)) return;
+
+  // Skip API requests so they always fetch fresh data
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith('/api/')) return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
