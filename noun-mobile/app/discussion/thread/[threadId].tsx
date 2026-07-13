@@ -8,8 +8,8 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useAuth } from '../../../context/AuthContext';
 import { formatTimeAgo } from '../../../utils/offlineStorage';
 
-const THREADS_URL = 'https://noun-study-buddy-1.onrender.com/api/discussion-threads/';
-const REPLIES_URL = 'https://noun-study-buddy-1.onrender.com/api/discussion-replies/';
+const THREADS_URL = 'https://noun-study-buddy.onrender.com/api/discussion-threads/';
+const REPLIES_URL = 'https://noun-study-buddy.onrender.com/api/discussion-replies/';
 
 export default function ThreadDetail() {
   const { threadId } = useLocalSearchParams();

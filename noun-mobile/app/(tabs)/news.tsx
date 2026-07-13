@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, 
 import { useTheme } from '../../context/ThemeContext';
 import { cacheNews, getCachedNews, formatTimeAgo } from '../../utils/offlineStorage';
 
-const API_URL = 'https://noun-study-buddy-1.onrender.com/api/news/';
+const API_URL = 'https://noun-study-buddy.onrender.com/api/news/';
 
 type NewsCategory = 'ALL' | 'TMA' | 'EXAM' | 'GENERAL' | 'EVENTS';
 

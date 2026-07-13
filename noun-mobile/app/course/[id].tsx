@@ -35,7 +35,7 @@ export default function CourseDetails() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
       
-      const response = await fetch(`https://noun-study-buddy-1.onrender.com/api/courses/${id}/?t=${Date.now()}`, { 
+      const response = await fetch(`https://noun-study-buddy.onrender.com/api/courses/${id}/?t=${Date.now()}`, { 
         signal: controller.signal as any,
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',

@@ -5,7 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { cacheCourses, getCachedCourses, getLastSyncTime, formatTimeAgo, checkIsOnline } from '../../utils/offlineStorage';
 
-const API_URL = 'https://noun-study-buddy-1.onrender.com/api/courses/'; 
+const API_URL = 'https://noun-study-buddy.onrender.com/api/courses/'; 
 
 export default function CourseDashboard() {
   const [courses, setCourses] = useState<any[]>([]);

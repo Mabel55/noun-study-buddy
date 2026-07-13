@@ -4,7 +4,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'expo-router';
 
-const BASE_URL = 'https://noun-study-buddy-1.onrender.com';
+const BASE_URL = 'https://noun-study-buddy.onrender.com';
 
 export default function LeaderboardScreen() {
   const { colors } = useTheme();

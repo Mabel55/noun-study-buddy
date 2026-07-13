@@ -36,7 +36,7 @@ SECRET_KEY = 'django-insecure-5z24@iv+b40-n#d2nds=u0@v5ya5p212)tlp^0k3y&0r50j@fp
 DEBUG = True
 
 ALLOWED_HOSTS = ['noun-study-buddy-gcdgdec8ajgcbxhr.southafricanorth-01.azurewebsites.net', '127.0.0.1', 'localhost', 'noun-study-buddy.onrender.com',]
-CSRF_TRUSTED_ORIGINS = ['https://noun-study-buddy-gcdgdec8ajgcbxhr.southafricanorth-01.azurewebsites.net']
+CSRF_TRUSTED_ORIGINS = ['https://noun-study-buddy-gcdgdec8ajgcbxhr.southafricanorth-01.azurewebsites.net', 'https://noun-study-buddy-1.onrender.com']
 
 # Application definition
 
@@ -178,6 +178,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8081",
     "http://127.0.0.1:8081",
+    "https://noun-study-buddy-1.onrender.com",
 ]
 
 CLOUDINARY_STORAGE = { # <--- Make sure this line is here!

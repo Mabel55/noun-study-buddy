@@ -30,7 +30,7 @@ export default function SummaryPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
       
-      const res = await fetch(`https://noun-study-buddy-1.onrender.com/api/summaries/course/${id}/`, { signal: controller.signal as any });
+      const res = await fetch(`https://noun-study-buddy.onrender.com/api/summaries/course/${id}/`, { signal: controller.signal as any });
       clearTimeout(timeoutId);
       
       if (!res.ok) throw new Error('Network response not ok');
