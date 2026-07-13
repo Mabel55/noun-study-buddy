@@ -40,12 +40,7 @@ export default function CourseDashboard() {
       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout to allow Render to wake up
       
       const response = await fetch(`${API_URL}?t=${Date.now()}`, { 
-        signal: controller.signal as any,
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
+        signal: controller.signal as any
       });
       clearTimeout(timeoutId);
       
