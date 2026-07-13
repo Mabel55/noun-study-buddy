@@ -28,6 +28,7 @@ from .serializers import (
 # ==========================
 
 class CourseViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Course.objects.all()
     permission_classes = [AllowAny]
 
     def get_queryset(self):
