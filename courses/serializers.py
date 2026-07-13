@@ -69,13 +69,18 @@ class CourseSerializer(serializers.ModelSerializer):
 
 # 6. Serializer for Courses (List View - Lightweight, no questions)
 class CourseListSerializer(serializers.ModelSerializer):
-    # Only return summaries and mock exams, omit the thousands of questions to prevent OOM
     summaries = SummarySerializer(many=True, read_only=True, source='summary_set')
     mock_exams = MockExamSerializer(many=True, read_only=True, source='mockexam_set')
+
+    # These fields are populated by the .annotate() in get_queryset()
+    cbt_questions_count = serializers.IntegerField(read_only=True)
+    pop_questions_count = serializers.IntegerField(read_only=True)
+    fill_questions_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Course
         fields = [
             'id', 'title', 'code', 'description', 'textbook', 'exam_type',
-            'summaries', 'mock_exams'
+            'summaries', 'mock_exams',
+            'cbt_questions_count', 'pop_questions_count', 'fill_questions_count'
         ]

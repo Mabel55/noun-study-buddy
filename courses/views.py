@@ -32,8 +32,13 @@ class CourseViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
+        from django.db.models import Count
         if self.action == 'list':
-            return Course.objects.prefetch_related('summary_set', 'mockexam_set')
+            return Course.objects.prefetch_related('summary_set', 'mockexam_set').annotate(
+                cbt_questions_count=Count('question', distinct=True),
+                pop_questions_count=Count('popquestion', distinct=True),
+                fill_questions_count=Count('fillinthegap', distinct=True)
+            )
         return Course.objects.all()
 
     def get_serializer_class(self):
