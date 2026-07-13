@@ -73,6 +73,21 @@ export default function DashboardScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* CGPA Calculator Banner */}
+        <TouchableOpacity 
+          style={[styles.cgpaCard, { backgroundColor: colors.accent }]} 
+          onPress={() => router.push('/cgpa')}
+        >
+          <View style={styles.cgpaCardInner}>
+            <Text style={styles.cgpaIcon}>🎓</Text>
+            <View style={styles.cgpaTextContent}>
+              <Text style={styles.cgpaTitle}>CGPA Calculator</Text>
+              <Text style={styles.cgpaDesc}>Calculate and track your academic standing</Text>
+            </View>
+            <Text style={styles.cgpaArrow}>→</Text>
+          </View>
+        </TouchableOpacity>
+
         {/* Stats Row */}
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: colors.card }]}>  
@@ -219,6 +234,14 @@ const styles = StyleSheet.create({
   centerBody: { flex: 1, justifyContent: 'center', padding: 20 },
   scrollContent: { padding: 16, paddingBottom: 40 },
   
+  cgpaCard: { borderRadius: 16, marginBottom: 16, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowOffset: {width: 0, height: 2} },
+  cgpaCardInner: { flexDirection: 'row', alignItems: 'center', padding: 16 },
+  cgpaIcon: { fontSize: 30, marginRight: 12 },
+  cgpaTextContent: { flex: 1 },
+  cgpaTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 2 },
+  cgpaDesc: { color: 'rgba(255,255,255,0.8)', fontSize: 12 },
+  cgpaArrow: { color: '#fff', fontSize: 24, fontWeight: 'bold' },
+
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   statCard: { flex: 1, borderRadius: 16, padding: 16, alignItems: 'center', elevation: 2 },
   statIcon: { fontSize: 24, marginBottom: 6 },

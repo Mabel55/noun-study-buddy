@@ -15,6 +15,7 @@ const KEYS = {
   SUMMARY: (id: string | number) => `@noun_cached_summary_${id}`,
   NEWS: '@noun_cached_news',
   LAST_SYNC: '@noun_last_sync',
+  CGPA: '@noun_cached_cgpa',
 };
 
 // ── Network Check ────────────────────────────────────────────────────────────
@@ -159,4 +160,24 @@ export function formatTimeAgo(isoDate: string): string {
   
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays}d ago`;
+}
+
+// ── CGPA Cache ───────────────────────────────────────────────────────────────
+
+export async function cacheCGPAData(data: any): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.CGPA, JSON.stringify(data));
+  } catch (error) {
+    console.warn('Failed to cache CGPA data:', error);
+  }
+}
+
+export async function getCachedCGPAData(): Promise<any | null> {
+  try {
+    const data = await AsyncStorage.getItem(KEYS.CGPA);
+    return data ? JSON.parse(data) : null;
+  } catch (error) {
+    console.warn('Failed to read cached CGPA data:', error);
+    return null;
+  }
 }

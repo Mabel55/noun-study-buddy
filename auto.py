@@ -60,7 +60,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 available_llms = []
 
 # Use Groq as primary since Gemini has exhausted its quota
-available_llms.append(ChatGroq(model="llama-3.3-70b-versatile", temperature=0.1, max_tokens=4000, api_key=os.environ.get("GROQ_API_KEY", "fallback-key")))
+available_llms.append(ChatGroq(model="llama-3.1-8b-instant", temperature=0.1, max_tokens=4000, api_key=os.environ.get("GROQ_API_KEY", "fallback-key")))
 
 gemini_key = os.environ.get("GEMINI_API_KEY")
 if gemini_key:
