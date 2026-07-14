@@ -22,14 +22,8 @@ export default function NewsScreen() {
       const data = await response.json();
       setNews(data);
       setIsOffline(false);
-      await cacheNews(data);
     } catch (error) {
-      console.log('Failed to fetch news, using cache...', error);
-      const cached = await getCachedNews();
-      if (cached) {
-        setNews(cached);
-        setIsOffline(true);
-      }
+      console.log('Failed to fetch news', error);
     } finally {
       setLoading(false);
       if (isRefresh) setRefreshing(false);
@@ -88,14 +82,6 @@ export default function NewsScreen() {
         <Text style={[styles.headerSubtitle, { color: colors.headerSubtext }]}>Stay updated with the latest from NOUN</Text>
       </View>
 
-      {/* Offline Banner */}
-      {isOffline && (
-        <View style={[styles.offlineBanner, { backgroundColor: isDark ? '#3d2a1a' : '#fff3e0' }]}>
-          <Text style={[styles.offlineBannerText, { color: isDark ? '#ffb74d' : '#e65100' }]}>
-            📥 Offline Mode — showing cached news
-          </Text>
-        </View>
-      )}
 
       {/* Category Filter */}
       <View style={styles.filterContainer}>

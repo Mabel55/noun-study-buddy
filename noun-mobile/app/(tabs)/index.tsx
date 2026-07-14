@@ -20,21 +20,8 @@ export default function CourseDashboard() {
   }, []);
 
   const loadCourses = async () => {
-    // 1. Instantly load from cache if available (Optimistic Loading)
-    const cached = await getCachedCourses();
-    let hasCache = false;
-    if (cached && cached.length > 0) {
-      setCourses(cached);
-      setLoading(false);
-      setIsOffline(true);
-      hasCache = true;
-      const syncTime = await getLastSyncTime();
-      setLastSync(syncTime);
-    } else {
-      setLoading(true); // Only show spinner if we have no cache
-    }
+    setLoading(true);
 
-    // 2. Fetch fresh data from API in the background
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout to allow Render to wake up
@@ -51,21 +38,16 @@ export default function CourseDashboard() {
       setCourses(data);
       setIsOffline(false);
       setLoading(false);
-
-      // Silently cache for next time
-      await cacheCourses(data);
     } catch (error) {
-      console.log('API fetch failed behind the scenes.');
-      if (!hasCache) {
-        setLoading(false); // Make sure spinner stops if everything fails
-      }
+      console.log('API fetch failed.');
+      setLoading(false);
     }
   };
 
   const renderCourseCard = ({ item }: any) => {
-    const qCount = (item.cbt_questions_count || item.cbt_questions?.length || 0) + 
-                   (item.pop_questions_count || item.pop_questions?.length || 0) + 
-                   (item.fill_questions_count || item.fill_questions?.length || 0);
+    const qCount = (item.cbt_questions_count ?? item.cbt_questions?.length ?? 0) + 
+                   (item.pop_questions_count ?? item.pop_questions?.length ?? 0) + 
+                   (item.fill_questions_count ?? item.fill_questions?.length ?? 0);
     return (
       <TouchableOpacity 
         style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.shadow }]} 
@@ -117,19 +99,7 @@ export default function CourseDashboard() {
         </View>
       </View>
 
-      {/* Offline Banner */}
-      {isOffline && (
-        <View style={[styles.offlineBanner, { backgroundColor: isDark ? '#3d2a1a' : '#fff3e0' }]}>
-          <Text style={[styles.offlineBannerText, { color: isDark ? '#ffb74d' : '#e65100' }]}>
-            📥 Offline Mode — showing cached data
-          </Text>
-          {lastSync && (
-            <Text style={[styles.offlineSyncText, { color: isDark ? '#ffcc80' : '#f57c00' }]}>
-              Last synced: {formatTimeAgo(lastSync)}
-            </Text>
-          )}
-        </View>
-      )}
+
 
       {loading ? (
         <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 50 }} />
@@ -138,16 +108,14 @@ export default function CourseDashboard() {
           <Text style={{ fontSize: 48, marginBottom: 12 }}>📡</Text>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>No courses available</Text>
           <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
-            {isOffline ? 'Connect to the internet to load courses for the first time.' : 'No courses found on the server.'}
+            No courses found on the server or no connection.
           </Text>
-          {isOffline && (
-            <TouchableOpacity 
-              style={[styles.retryBtn, { backgroundColor: colors.accent }]} 
-              onPress={() => { setLoading(true); loadCourses(); }}
-            >
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>🔄 Retry</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity 
+            style={[styles.retryBtn, { backgroundColor: colors.accent }]} 
+            onPress={() => { setLoading(true); loadCourses(); }}
+          >
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>🔄 Retry</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList

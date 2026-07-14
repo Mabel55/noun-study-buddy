@@ -16,16 +16,8 @@ export default function SummaryPage() {
   }, [id]);
 
   const loadSummary = async () => {
-    // 1. Optimistic load from cache
-    const cached = await getCachedSummary(id as string);
-    if (cached) {
-      setCourseData(cached);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
+    setLoading(true);
 
-    // 2. Fetch fresh data in background
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
@@ -38,14 +30,9 @@ export default function SummaryPage() {
       
       setCourseData(data);
       setLoading(false);
-      
-      // Silently cache
-      await cacheSummary(id as string, data);
     } catch (err) {
-      console.log('Summary API fetch failed behind the scenes.');
-      if (!cached) {
-        setLoading(false); // Stop spinner if nothing loaded
-      }
+      console.log('Summary API fetch failed.');
+      setLoading(false);
     }
   };
 

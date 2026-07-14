@@ -20,17 +20,8 @@ export default function CourseDetails() {
   }, [id]);
 
   const loadCourseData = async () => {
-    // 1. Optimistic load from cache
-    const cached = await getCachedCourseDetail(id as string);
-    if (cached) {
-      setCourseData(cached);
-      setIsOffline(true);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
+    setLoading(true);
 
-    // 2. Fetch fresh data from API in background
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
@@ -46,14 +37,9 @@ export default function CourseDetails() {
       setCourseData(data);
       setIsOffline(false);
       setLoading(false);
-
-      // Silently cache for offline use
-      await cacheCourseDetail(id as string, data);
     } catch (error) {
-      console.log(`API fetch failed behind the scenes for course ${id}`);
-      if (!cached) {
-        setLoading(false);
-      }
+      console.log(`API fetch failed for course ${id}`);
+      setLoading(false);
     }
   };
 
@@ -105,14 +91,6 @@ export default function CourseDetails() {
         </View>
       </View>
 
-      {/* Offline Banner */}
-      {isOffline && (
-        <View style={[styles.offlineBanner, { backgroundColor: isDark ? '#3d2a1a' : '#fff3e0' }]}>
-          <Text style={[styles.offlineBannerText, { color: isDark ? '#ffb74d' : '#e65100' }]}>
-            📥 Offline Mode — showing cached data
-          </Text>
-        </View>
-      )}
 
       <ScrollView style={styles.content}>
         <Text style={[styles.promptText, { color: colors.text }]}>What would you like to do?</Text>
