@@ -283,6 +283,11 @@ Read this section and write a DETAILED study guide that includes:
    - List 3-5 specific facts, formulas, or definitions from this section
    - These are the things most likely to appear in a NOUN exam
 
+5. PRACTICE EXAM QUESTIONS WITH DETAILED EXPLANATIONS
+   - Create 3 sample exam questions based on this section
+   - Provide the correct answer AND a very detailed, step-by-step explanation of WHY it is correct
+   - For maths/physics, show the full calculation process from formula to final answer
+
 WRITING RULES:
 - Write in plain, clear English - no complex academic language
 - If something is complex, break it into smaller parts
@@ -313,6 +318,11 @@ Read this section and write a study guide that includes:
 
 4. SUMMARY POINTS
    - A short bullet list of the most important takeaways from this section
+
+5. PRACTICE EXAM QUESTIONS WITH DETAILED EXPLANATIONS
+   - Create 3 sample exam questions based on this section
+   - Provide the correct answer AND a very detailed explanation of WHY it is correct
+   - Make sure the explanation helps the student deeply understand the underlying concept
 
 WRITING RULES:
 - Write clearly for a student studying alone at home
