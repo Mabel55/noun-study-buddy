@@ -471,7 +471,7 @@ def generate_fill_in_gaps(doc, course_info: dict, num_questions=15) -> list:
     print(f"    Generating {num_questions} Fill-in-the-Gap questions for {course_code}...")
 
     if course_code.startswith("MTH") or course_code.startswith("PHY"):
-        extra_instruction = "7. CRITICAL: For math/physics courses, questions MUST involve numerical calculations. E.g. 'If v=10 and t=2, then distance is ______.' The correct answer must be a number or formula."
+        extra_instruction = "7. CRITICAL: For math/physics courses, questions MUST involve numerical calculations. Put units outside the blank (e.g. 'If v=10 and t=2, distance is ______ meters.') so the correct_answer is strictly a number or formula."
     else:
         extra_instruction = ""
 
