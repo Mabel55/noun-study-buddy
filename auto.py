@@ -375,7 +375,9 @@ def generate_mcq(doc, course_info: dict, num_questions=30) -> list:
 
     print(f"    Generating {num_questions} MCQs for {course_code}...")
 
-    if is_technical:
+    if course_code.startswith("MTH") or course_code.startswith("PHY"):
+        extra_instruction = "- CRITICAL: ALMOST ALL questions MUST be realistic numerical calculations, mathematical problems, or physics equations. Avoid basic theory. The options must be numerical answers or equations."
+    elif is_technical:
         extra_instruction = "- Include questions that test understanding of formulas, definitions, processes, and application. Include some calculation-based questions. Make wrong options common mistakes students make."
     else:
         extra_instruction = "- Focus on definitions, theories, and key concepts. Include questions about important facts, names, and principles."
@@ -458,6 +460,11 @@ def generate_fill_in_gaps(doc, course_info: dict, num_questions=15) -> list:
 
     print(f"    Generating {num_questions} Fill-in-the-Gap questions for {course_code}...")
 
+    if course_code.startswith("MTH") or course_code.startswith("PHY"):
+        extra_instruction = "7. CRITICAL: For math/physics courses, questions MUST involve numerical calculations. E.g. 'If v=10 and t=2, then distance is ______.' The correct answer must be a number or formula."
+    else:
+        extra_instruction = ""
+
     template = """
 You are an expert NOUN exam question setter creating fill-in-the-gap questions for: {course_code}
 
@@ -468,6 +475,7 @@ STRICT RULES:
 4. Do NOT blank out words like "the", "is", "a", "and", "of"
 5. Each question must test a DIFFERENT concept
 6. The question must make complete sense with the blank filled in
+{extra_instruction}
 
 GOOD EXAMPLES:
 - "The process by which plants produce food using sunlight is called ______." -> "photosynthesis"
@@ -489,7 +497,7 @@ Textbook content for {course_code}:
 
     raw = call_llm(
         chain,
-        {"text": text, "num": num_questions, "course_code": course_code},
+        {"text": text, "num": num_questions, "course_code": course_code, "extra_instruction": extra_instruction},
         wait=65
     )
     questions = safe_parse_json(raw)
@@ -523,7 +531,9 @@ def generate_pop_questions(doc, course_info: dict, num_questions=6) -> list:
 
     print(f"    Generating {num_questions} POP theory questions for {course_code}...")
 
-    if is_technical:
+    if course_code.startswith("MTH") or course_code.startswith("PHY"):
+        answer_instruction = "CRITICAL: For these mathematical/physics questions: ACT AS A HELPFUL LECTURER EXPLAINING TO A STUDENT. Questions MUST involve realistic numerical calculations or derivations, not just basic theory. Show full step-by-step working. Start with the formula or principle and EXPLAIN WHY you are using it. Apply it step by step, show ALL calculations clearly, and break down complex logic so a beginner can understand it. End with a clear conclusion."
+    elif is_technical:
         answer_instruction = "For mathematical/technical questions: ACT AS A HELPFUL LECTURER EXPLAINING TO A STUDENT. Show full step-by-step working. Start with the formula or principle and EXPLAIN WHY you are using it. Apply it step by step, show ALL calculations clearly, and break down complex logic so a beginner can understand it. End with a clear conclusion."
     else:
         answer_instruction = "Write complete answers that would score full marks in a NOUN POP exam. Use clear paragraphs. Include specific examples, facts, or theories from the course."
