@@ -33,8 +33,18 @@ class CourseViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
+        from django.db.models import Subquery, OuterRef, Count, IntegerField
+        from django.db.models.functions import Coalesce
         if self.action == 'list':
-            return Course.objects.prefetch_related('summary_set', 'mockexam_set', 'pastquestionpaper_set')
+            cbt_sub = Question.objects.filter(course=OuterRef('pk')).order_by().values('course').annotate(c=Count('id')).values('c')
+            pop_sub = PopQuestion.objects.filter(course=OuterRef('pk')).order_by().values('course').annotate(c=Count('id')).values('c')
+            fill_sub = FillInTheGap.objects.filter(course=OuterRef('pk')).order_by().values('course').annotate(c=Count('id')).values('c')
+
+            return Course.objects.prefetch_related('summary_set', 'mockexam_set', 'pastquestionpaper_set').annotate(
+                cbt_questions_count=Coalesce(Subquery(cbt_sub, output_field=IntegerField()), 0),
+                pop_questions_count=Coalesce(Subquery(pop_sub, output_field=IntegerField()), 0),
+                fill_questions_count=Coalesce(Subquery(fill_sub, output_field=IntegerField()), 0)
+            )
         return Course.objects.all()
 
     def get_serializer_class(self):

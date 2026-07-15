@@ -84,10 +84,10 @@ class CourseListSerializer(serializers.ModelSerializer):
     mock_exams = MockExamSerializer(many=True, read_only=True, source='mockexam_set')
     past_question_papers = PastQuestionPaperSerializer(many=True, read_only=True, source='pastquestionpaper_set')
 
-    # These fields are populated by SerializerMethodField
-    cbt_questions_count = serializers.SerializerMethodField()
-    pop_questions_count = serializers.SerializerMethodField()
-    fill_questions_count = serializers.SerializerMethodField()
+    # These fields are populated by the .annotate() in get_queryset()
+    cbt_questions_count = serializers.IntegerField(read_only=True)
+    pop_questions_count = serializers.IntegerField(read_only=True)
+    fill_questions_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Course
@@ -96,15 +96,6 @@ class CourseListSerializer(serializers.ModelSerializer):
             'summaries', 'mock_exams', 'past_question_papers',
             'cbt_questions_count', 'pop_questions_count', 'fill_questions_count'
         ]
-
-    def get_cbt_questions_count(self, obj):
-        return obj.question_set.count()
-
-    def get_pop_questions_count(self, obj):
-        return obj.popquestion_set.count()
-
-    def get_fill_questions_count(self, obj):
-        return obj.fillinthegap_set.count()
 
 # 7. Next-Level Features Serializers
 class SemesterSettingsSerializer(serializers.ModelSerializer):
