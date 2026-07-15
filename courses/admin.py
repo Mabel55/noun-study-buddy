@@ -17,6 +17,14 @@ class CourseAdmin(admin.ModelAdmin):
     list_display = ('code', 'title', 'price')
     actions = [generate_ai_content]
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        
+        # Automatically trigger the RAG pipeline if a textbook was just uploaded
+        if 'textbook' in form.changed_data and obj.textbook:
+            threading.Thread(target=process_course_rag_background, args=(obj.id,)).start()
+            messages.success(request, f"Automatically started AI RAG pipeline for {obj.code} because a new textbook was uploaded. This will run in the background.")
+
 # 2. Question Admin
 class QuestionAdmin(admin.ModelAdmin):
     list_display = ('course', 'text', 'correct_answer')
