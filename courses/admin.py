@@ -1,9 +1,21 @@
-from django.contrib import admin
+import threading
+from django.contrib import admin, messages
 from .models import Course, Question, Summary, MockExam, Purchase, PopQuestion, FillInTheGap, NewsArticle, DiscussionThread, DiscussionReply
+from .rag_tasks import process_course_rag_background
+
+@admin.action(description='Generate AI Content (Summary & Questions) from Textbook')
+def generate_ai_content(modeladmin, request, queryset):
+    for course in queryset:
+        if course.textbook:
+            threading.Thread(target=process_course_rag_background, args=(course.id,)).start()
+            modeladmin.message_user(request, f"Started AI RAG pipeline for {course.code}. This will take a few minutes in the background.", level=messages.SUCCESS)
+        else:
+            modeladmin.message_user(request, f"Skipped {course.code} - no textbook uploaded.", level=messages.ERROR)
 
 # 1. Course Admin
 class CourseAdmin(admin.ModelAdmin):
     list_display = ('code', 'title', 'price')
+    actions = [generate_ai_content]
 
 # 2. Question Admin
 class QuestionAdmin(admin.ModelAdmin):
