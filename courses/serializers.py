@@ -26,6 +26,11 @@ class SummarySerializer(serializers.ModelSerializer):
         model = Summary
         fields = '__all__'
 
+class SummaryLightSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Summary
+        fields = ['id', 'title', 'is_premium', 'course']
+
 class PastQuestionPaperSerializer(serializers.ModelSerializer):
     class Meta:
         model = PastQuestionPaper
@@ -56,7 +61,7 @@ class QuestionSerializer(serializers.ModelSerializer):
 
 # 5. Serializer for Courses (Detail View - with all questions)
 class CourseSerializer(serializers.ModelSerializer):
-    summaries = SummarySerializer(many=True, read_only=True, source='summary_set')
+    summaries = SummaryLightSerializer(many=True, read_only=True, source='summary_set')
     mock_exams = MockExamSerializer(many=True, read_only=True, source='mockexam_set')
     past_question_papers = PastQuestionPaperSerializer(many=True, read_only=True, source='pastquestionpaper_set')
     
@@ -75,7 +80,7 @@ class CourseSerializer(serializers.ModelSerializer):
 
 # 6. Serializer for Courses (List View - Lightweight, no questions)
 class CourseListSerializer(serializers.ModelSerializer):
-    summaries = SummarySerializer(many=True, read_only=True, source='summary_set')
+    summaries = SummaryLightSerializer(many=True, read_only=True, source='summary_set')
     mock_exams = MockExamSerializer(many=True, read_only=True, source='mockexam_set')
     past_question_papers = PastQuestionPaperSerializer(many=True, read_only=True, source='pastquestionpaper_set')
 
