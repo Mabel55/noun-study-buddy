@@ -41,6 +41,10 @@ export function usePushNotifications() {
 }
 
 async function registerForPushNotificationsAsync() {
+  if (Platform.OS === 'web') {
+    return null;
+  }
+  
   let token;
 
   if (Platform.OS === 'android') {
