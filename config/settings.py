@@ -167,6 +167,11 @@ ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_REQUIRED = True
 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
 # PAYSTACK SETTINGS (PLACEHOLDERS)
 PAYSTACK_PUBLIC_KEY = 'pk_test_a64b83152afb7c3802b47beeac0544bfd7635861'
 PAYSTACK_SECRET_KEY = 'sk_test_514de6ae0cc2beea5e86b39402b9249ae821ab64'
