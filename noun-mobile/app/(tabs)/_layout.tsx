@@ -2,12 +2,14 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Slot, useRouter, usePathname } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
 
 const tabs = [
   { name: '/', label: 'Home', icon: '🏠' },
   { name: '/dashboard', label: 'Dashboard', icon: '📊' },
   { name: '/leaderboard', label: 'Ranks', icon: '🏆' },
   { name: '/news', label: 'News', icon: '📰' },
+  { name: '/buddies', label: 'Buddies', icon: '👥' },
   { name: '/profile', label: 'Profile', icon: '👤' },
 ];
 
@@ -15,6 +17,7 @@ export default function TabsLayout() {
   const router = useRouter();
   const pathname = usePathname();
   const { colors } = useTheme();
+  usePushNotifications(); // Activate push notifications
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
 # 1. IMPORT ALL YOUR MODELS (Added FillInTheGap and PopQuestion)
-from .models import Course, Question, Summary, MockExam, Purchase, FillInTheGap, PopQuestion, NewsArticle, DiscussionThread, DiscussionReply
+from .models import Course, Question, Summary, MockExam, Purchase, FillInTheGap, PopQuestion, NewsArticle, DiscussionThread, DiscussionReply, PastQuestionPaper
 
 # 2. IMPORT ALL YOUR SERIALIZERS (Added FillInTheGapSerializer and PopQuestionSerializer)
 from .serializers import (
@@ -20,7 +20,8 @@ from .serializers import (
     PopQuestionSerializer,
     NewsArticleSerializer,
     DiscussionThreadSerializer,
-    DiscussionReplySerializer
+    DiscussionReplySerializer,
+    PastQuestionPaperSerializer
 )
 
 # ==========================
@@ -45,6 +46,11 @@ class CourseViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action == 'list':
             return CourseListSerializer
         return CourseSerializer
+
+class PastQuestionPaperViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = PastQuestionPaper.objects.all()
+    serializer_class = PastQuestionPaperSerializer
+    permission_classes = [AllowAny]
 
 
 class QuestionViewSet(viewsets.ReadOnlyModelViewSet):

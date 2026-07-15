@@ -14,7 +14,8 @@ from .views import (
     get_summary_by_course,
     NewsArticleViewSet,
     DiscussionThreadViewSet,
-    DiscussionReplyViewSet
+    DiscussionReplyViewSet,
+    PastQuestionPaperViewSet
 )
 
 from .dashboard_views import (
@@ -26,6 +27,13 @@ from .dashboard_views import (
 
 from .ai_views import chat_with_tutor
 from .planner_views import exam_planner
+from .next_level_views import (
+    update_push_token,
+    get_semester_settings,
+    StudyBuddyMatchViewSet,
+    request_match,
+    DirectMessageViewSet
+)
 
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet)
@@ -37,6 +45,9 @@ router.register(r'mock-exams', MockExamViewSet)
 router.register(r'news', NewsArticleViewSet)
 router.register(r'discussion-threads', DiscussionThreadViewSet, basename='discussion-thread')
 router.register(r'discussion-replies', DiscussionReplyViewSet, basename='discussion-reply')
+router.register(r'past-questions', PastQuestionPaperViewSet, basename='past-questions')
+router.register(r'buddies', StudyBuddyMatchViewSet, basename='study-buddies')
+router.register(r'messages', DirectMessageViewSet, basename='direct-messages')
 
 urlpatterns = [
     # This includes all the standard routes (courses, questions, fill-in-gaps, pop-questions, etc.)
@@ -62,4 +73,9 @@ urlpatterns = [
 
     # Phase 5: Planner
     path('planner/', exam_planner, name='exam_planner'),
+
+    # Phase 8: Next-Level Features
+    path('push-token/', update_push_token, name='update_push_token'),
+    path('semester-settings/', get_semester_settings, name='semester_settings'),
+    path('buddies/request/', request_match, name='request_match'),
 ]

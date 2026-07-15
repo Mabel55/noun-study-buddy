@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Course, Question, MockExam, Summary, PopQuestion, FillInTheGap, NewsArticle, DiscussionThread, DiscussionReply
+from .models import Course, Question, MockExam, Summary, PopQuestion, FillInTheGap, NewsArticle, DiscussionThread, DiscussionReply, PastQuestionPaper, SemesterSettings, StudyBuddyMatch, DirectMessage
 
 class NewsArticleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -26,6 +26,11 @@ class SummarySerializer(serializers.ModelSerializer):
         model = Summary
         fields = '__all__'
 
+class PastQuestionPaperSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PastQuestionPaper
+        fields = '__all__'
+
 # 2. Serializers for the new Question formats
 class PopQuestionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -47,12 +52,13 @@ class MockExamSerializer(serializers.ModelSerializer):
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question
-        fields = ['id', 'text', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_answer']
+        fields = '__all__'
 
 # 5. Serializer for Courses (Detail View - with all questions)
 class CourseSerializer(serializers.ModelSerializer):
     summaries = SummarySerializer(many=True, read_only=True, source='summary_set')
     mock_exams = MockExamSerializer(many=True, read_only=True, source='mockexam_set')
+    past_question_papers = PastQuestionPaperSerializer(many=True, read_only=True, source='pastquestionpaper_set')
     
     # Adding all three question types directly to the course response
     cbt_questions = QuestionSerializer(many=True, read_only=True, source='question_set')
@@ -63,7 +69,7 @@ class CourseSerializer(serializers.ModelSerializer):
         model = Course
         fields = [
             'id', 'title', 'code', 'description', 'textbook', 'exam_type', 
-            'summaries', 'mock_exams', 
+            'summaries', 'mock_exams', 'past_question_papers',
             'cbt_questions', 'pop_questions', 'fill_questions'
         ]
 
@@ -71,6 +77,7 @@ class CourseSerializer(serializers.ModelSerializer):
 class CourseListSerializer(serializers.ModelSerializer):
     summaries = SummarySerializer(many=True, read_only=True, source='summary_set')
     mock_exams = MockExamSerializer(many=True, read_only=True, source='mockexam_set')
+    past_question_papers = PastQuestionPaperSerializer(many=True, read_only=True, source='pastquestionpaper_set')
 
     # These fields are populated by the .annotate() in get_queryset()
     cbt_questions_count = serializers.IntegerField(read_only=True)
@@ -81,6 +88,28 @@ class CourseListSerializer(serializers.ModelSerializer):
         model = Course
         fields = [
             'id', 'title', 'code', 'description', 'textbook', 'exam_type',
-            'summaries', 'mock_exams',
+            'summaries', 'mock_exams', 'past_question_papers',
             'cbt_questions_count', 'pop_questions_count', 'fill_questions_count'
         ]
+
+# 7. Next-Level Features Serializers
+class SemesterSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SemesterSettings
+        fields = '__all__'
+
+class DirectMessageSerializer(serializers.ModelSerializer):
+    sender_username = serializers.CharField(source='sender.username', read_only=True)
+    
+    class Meta:
+        model = DirectMessage
+        fields = '__all__'
+
+class StudyBuddyMatchSerializer(serializers.ModelSerializer):
+    user1_username = serializers.CharField(source='user1.username', read_only=True)
+    user2_username = serializers.CharField(source='user2.username', read_only=True)
+    course_code = serializers.CharField(source='course.code', read_only=True)
+    
+    class Meta:
+        model = StudyBuddyMatch
+        fields = '__all__'

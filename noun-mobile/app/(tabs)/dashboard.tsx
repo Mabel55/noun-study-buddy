@@ -11,6 +11,7 @@ export default function DashboardScreen() {
   const { isLoggedIn, token } = useAuth();
   const router = useRouter();
   const [data, setData] = useState<any>(null);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,13 +19,26 @@ export default function DashboardScreen() {
       setLoading(false);
       return;
     }
-    fetch(`${BASE_URL}/api/dashboard/`, {
-      headers: { 'Authorization': `Token ${token}` },
-    })
-      .then(res => res.json())
-      .then(d => { setData(d); setLoading(false); })
+    Promise.all([
+      fetch(`${BASE_URL}/api/dashboard/`, { headers: { 'Authorization': `Token ${token}` } }).then(res => res.json()),
+      fetch(`${BASE_URL}/api/semester-settings/`).then(res => res.json().catch(() => null))
+    ])
+      .then(([d, s]) => { setData(d); setSettings(s); setLoading(false); })
       .catch(() => setLoading(false));
   }, [isLoggedIn, token]);
+
+  const getNextDeadline = () => {
+    if (!settings || settings.error) return null;
+    const now = new Date();
+    const deadlines = [
+      { name: 'TMA 1', date: settings.tma_1_deadline ? new Date(settings.tma_1_deadline) : null },
+      { name: 'TMA 2', date: settings.tma_2_deadline ? new Date(settings.tma_2_deadline) : null },
+      { name: 'TMA 3', date: settings.tma_3_deadline ? new Date(settings.tma_3_deadline) : null },
+    ].filter(d => d.date && d.date > now).sort((a, b) => a.date!.getTime() - b.date!.getTime());
+    return deadlines.length > 0 ? deadlines[0] : null;
+  };
+
+  const nextDeadline = getNextDeadline();
 
   if (!isLoggedIn) {
     return (
@@ -87,6 +101,21 @@ export default function DashboardScreen() {
             <Text style={styles.cgpaArrow}>→</Text>
           </View>
         </TouchableOpacity>
+
+        {/* TMA Deadline Countdown */}
+        {nextDeadline && (
+          <View style={[styles.tmaCard, { backgroundColor: '#f44336' }]}>
+            <View style={styles.tmaCardInner}>
+              <Text style={styles.tmaIcon}>⏰</Text>
+              <View style={styles.tmaTextContent}>
+                <Text style={styles.tmaTitle}>{nextDeadline.name} Deadline</Text>
+                <Text style={styles.tmaDesc}>
+                  {Math.ceil((nextDeadline.date!.getTime() - new Date().getTime()) / (1000 * 3600 * 24))} days remaining!
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Stats Row */}
         <View style={styles.statsRow}>
@@ -241,6 +270,13 @@ const styles = StyleSheet.create({
   cgpaTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 2 },
   cgpaDesc: { color: 'rgba(255,255,255,0.8)', fontSize: 12 },
   cgpaArrow: { color: '#fff', fontSize: 24, fontWeight: 'bold' },
+
+  tmaCard: { borderRadius: 16, marginBottom: 16, elevation: 3 },
+  tmaCardInner: { flexDirection: 'row', alignItems: 'center', padding: 16 },
+  tmaIcon: { fontSize: 30, marginRight: 12 },
+  tmaTextContent: { flex: 1 },
+  tmaTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 2 },
+  tmaDesc: { color: '#ffebee', fontSize: 14, fontWeight: 'bold' },
 
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   statCard: { flex: 1, borderRadius: 16, padding: 16, alignItems: 'center', elevation: 2 },

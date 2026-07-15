@@ -120,6 +120,22 @@ export default function CourseDetails() {
           </View>
         </TouchableOpacity>
 
+        {/* 2.5 FLASHCARDS MODE */}
+        <TouchableOpacity 
+          style={[styles.actionCard, { backgroundColor: colors.card }]} 
+          onPress={() => router.push(`/flashcards/${id}` as any)}
+        >
+          <View style={[styles.iconCircle, {backgroundColor: '#ffcdd2'}]}>
+            <Text style={{fontSize: 24}}>🔥</Text>
+          </View>
+          <View style={{flex: 1}}>
+            <Text style={[styles.actionTitle, { color: colors.text }]}>Tinder-Style Flashcards</Text>
+            <Text style={{fontSize: 12, color: colors.textMuted}}>
+              Swipe to review questions quickly
+            </Text>
+          </View>
+        </TouchableOpacity>
+
         {/* 3. THE TIMED MOCK EXAM */}
         {!isAdvanced ? (
           <TouchableOpacity 

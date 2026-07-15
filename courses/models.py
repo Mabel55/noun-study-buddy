@@ -21,9 +21,22 @@ class Course(models.Model):
     def __str__(self):
         return f"{self.code} - {self.title}"
 
+# 1.5 The Past Question Paper Table (For OCR and Downloads)
+class PastQuestionPaper(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    year = models.CharField(max_length=20) # e.g. "2023"
+    semester = models.CharField(max_length=50) # e.g. "First Semester"
+    file = models.FileField(upload_to='past_questions/', blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.course.code} - {self.year} ({self.semester})"
+
 # 2. The Question Table (For CBT Practice)
 class Question(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    past_question_paper = models.ForeignKey(PastQuestionPaper, on_delete=models.SET_NULL, null=True, blank=True)
+    year = models.CharField(max_length=20, null=True, blank=True)
+    semester = models.CharField(max_length=50, null=True, blank=True)
     text = models.TextField()
     option_a = models.CharField(max_length=200)
     option_b = models.CharField(max_length=200)
@@ -44,6 +57,9 @@ class Question(models.Model):
 # The Q&A Table (For POP / Short Answer Practice)
 class PopQuestion(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    past_question_paper = models.ForeignKey(PastQuestionPaper, on_delete=models.SET_NULL, null=True, blank=True)
+    year = models.CharField(max_length=20, null=True, blank=True)
+    semester = models.CharField(max_length=50, null=True, blank=True)
     question_text = models.TextField()
     answer_text = models.TextField() # Holds the detailed explanation/steps
 
@@ -53,6 +69,9 @@ class PopQuestion(models.Model):
 # The Fill-in-the-Gap Table (For NOUN CBT Standard)
 class FillInTheGap(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    past_question_paper = models.ForeignKey(PastQuestionPaper, on_delete=models.SET_NULL, null=True, blank=True)
+    year = models.CharField(max_length=20, null=True, blank=True)
+    semester = models.CharField(max_length=50, null=True, blank=True)
     question_text = models.TextField() # e.g., "The capital of Nigeria is ______."
     correct_answer = models.CharField(max_length=255) 
 
@@ -101,6 +120,7 @@ class UserProfile(models.Model):
     xp_points = models.IntegerField(default=0)
     level = models.IntegerField(default=1)
     matric_number = models.CharField(max_length=30, blank=True, default='')
+    expo_push_token = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.username} - Level {self.level} ({self.xp_points} XP)"
@@ -230,4 +250,45 @@ class DiscussionReply(models.Model):
         ordering = ['created_at']
 
     def __str__(self):
-        return f"Reply by {self.user.username} on {self.thread.title}"
+        return f"Reply by {self.user.username} on {self.thread.title}"
+
+# ==============================================================================
+# PHASE 8: NEXT-LEVEL FEATURES (Push, TMA Countdown, P2P Chat)
+# ==============================================================================
+
+class SemesterSettings(models.Model):
+    current_semester = models.CharField(max_length=50, default="2026_1")
+    tma_1_deadline = models.DateField(null=True, blank=True)
+    tma_2_deadline = models.DateField(null=True, blank=True)
+    tma_3_deadline = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Settings for {self.current_semester}"
+
+
+class StudyBuddyMatch(models.Model):
+    user1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='matches_as_user1')
+    user2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='matches_as_user2')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    matched_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user1', 'user2', 'course')
+
+    def __str__(self):
+        return f"{self.user1.username} & {self.user2.username} ({self.course.code})"
+
+
+class DirectMessage(models.Model):
+    match = models.ForeignKey(StudyBuddyMatch, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    sent_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['sent_at']
+
+    def __str__(self):
+        return f"Message from {self.sender.username} at {self.sent_at}"
+
