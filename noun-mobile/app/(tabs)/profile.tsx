@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } fr
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
@@ -17,7 +18,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.headerBg }]}>
-        <Text style={styles.headerTitle}>👤 Profile</Text>
+        <Text style={styles.headerTitle}><Ionicons name="person" size={24} color="#fff"/> Profile</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -25,7 +26,7 @@ export default function ProfileScreen() {
         {isLoggedIn ? (
           <View style={[styles.card, { backgroundColor: colors.card }]}>
             <View style={[styles.avatar, { backgroundColor: colors.accentLight }]}>
-              <Text style={{ fontSize: 40 }}>🎓</Text>
+              <Ionicons name="school" size={40} color={colors.accent}/>
             </View>
             <Text style={[styles.name, { color: colors.text }]}>
               {user?.first_name || user?.username || 'Student'}
@@ -33,7 +34,7 @@ export default function ProfileScreen() {
             <Text style={[styles.email, { color: colors.textSecondary, marginBottom: 12 }]}>{user?.email}</Text>
             
             <View style={[styles.premiumBadge, { backgroundColor: '#ffd700' }]}>
-              <Text style={{ fontWeight: 'bold', color: '#000' }}>👑 Free Plan</Text>
+              <Text style={{ fontWeight: 'bold', color: '#000' }}><Ionicons name="shield-checkmark" size={14}/> Free Plan</Text>
             </View>
             <TouchableOpacity style={{ marginTop: 10 }}>
               <Text style={{ color: colors.accent, fontWeight: 'bold' }}>Upgrade to Premium →</Text>
@@ -42,7 +43,7 @@ export default function ProfileScreen() {
         ) : (
           <View style={[styles.card, { backgroundColor: colors.card }]}>
             <View style={[styles.avatar, { backgroundColor: colors.accentLight }]}>
-              <Text style={{ fontSize: 40 }}>👤</Text>
+              <Ionicons name="person" size={40} color={colors.accent}/>
             </View>
             <Text style={[styles.name, { color: colors.text }]}>Guest User</Text>
             <Text style={[styles.email, { color: colors.textSecondary }]}>Log in to track your progress</Text>
@@ -59,7 +60,7 @@ export default function ProfileScreen() {
         <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>FEATURES</Text>
 
         <TouchableOpacity style={[styles.settingRow, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => router.push('/planner' as any)}>
-          <Text style={{ fontSize: 20 }}>📅</Text>
+          <Ionicons name="calendar" size={24} color={colors.text}/>
           <View style={{ flex: 1, marginLeft: 15 }}>
             <Text style={[styles.settingLabel, { color: colors.text }]}>Study Planner</Text>
             <Text style={{ fontSize: 12, color: colors.textMuted }}>Manage your exam schedule</Text>
@@ -70,7 +71,7 @@ export default function ProfileScreen() {
         <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>SETTINGS</Text>
 
         <TouchableOpacity style={[styles.settingRow, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={toggleTheme}>
-          <Text style={{ fontSize: 20 }}>{isDark ? '☀️' : '🌙'}</Text>
+          <Ionicons name={isDark ? 'sunny' : 'moon'} size={24} color={colors.text}/>
           <View style={{ flex: 1, marginLeft: 15 }}>
             <Text style={[styles.settingLabel, { color: colors.text }]}>Dark Mode</Text>
             <Text style={{ fontSize: 12, color: colors.textMuted }}>{isDark ? 'Currently ON' : 'Currently OFF'}</Text>
@@ -84,7 +85,7 @@ export default function ProfileScreen() {
         <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>ABOUT</Text>
 
         <View style={[styles.settingRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={{ fontSize: 20 }}>📱</Text>
+          <Ionicons name="phone-portrait" size={24} color={colors.text}/>
           <View style={{ flex: 1, marginLeft: 15 }}>
             <Text style={[styles.settingLabel, { color: colors.text }]}>App Version</Text>
             <Text style={{ fontSize: 12, color: colors.textMuted }}>NOUN Study Buddy v2.0</Text>

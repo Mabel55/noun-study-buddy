@@ -6,6 +6,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 
 const BASE_URL = 'https://noun-study-buddy.onrender.com';
 
@@ -179,7 +180,7 @@ export default function MockExamEngine() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.startBody}>
-          <View style={[styles.iconCircle, { backgroundColor: colors.accentLight }]}><Text style={{fontSize: 50}}>📝</Text></View>
+          <View style={[styles.iconCircle, { backgroundColor: colors.accentLight }]}><Ionicons name="document-text" size={50} color={colors.accent} /></View>
           <Text style={[styles.startTitle, { color: colors.accent }]}>Timed Mock Exam</Text>
           <Text style={[styles.startSub, { color: colors.textSecondary }]}>45 Minutes | {questions.length} Questions</Text>
           <Text style={{color: colors.textSecondary, fontWeight: 'bold', marginBottom: 20}}>
@@ -190,7 +191,7 @@ export default function MockExamEngine() {
             <Text style={[styles.ruleTxt, { color: colors.accentMid }]}>• Timer auto-submits at 00:00.</Text>
           </View>
           <TouchableOpacity style={[styles.startBtn, { backgroundColor: colors.accent }]} onPress={() => setExamStarted(true)}>
-            <Text style={styles.startBtnText}>Begin Exam 🚀</Text>
+            <Text style={styles.startBtnText}>Begin Exam <Ionicons name="rocket" size={18} color="#fff" /></Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -203,7 +204,7 @@ export default function MockExamEngine() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.center}>
-          <Text style={{fontSize: 60, marginBottom: 10}}>{pct >= 70 ? '🎉' : pct >= 50 ? '😊' : '😢'}</Text>
+          <Ionicons name={pct >= 70 ? 'ribbon' : pct >= 50 ? 'happy' : 'sad'} size={60} color={pct >= 70 ? '#4caf50' : pct >= 50 ? '#ff9800' : '#f44336'} style={{ marginBottom: 10 }} />
           <Text style={{fontSize: 50, fontWeight: 'bold', color: colors.accent}}>{score} / {questions.length}</Text>
           <Text style={{fontSize: 22, fontWeight: 'bold', color: colors.text, marginTop: 8}}>{pct}%</Text>
           <Text style={{fontSize: 16, color: colors.textSecondary, marginBottom: 30, marginTop: 4}}>
@@ -242,7 +243,7 @@ export default function MockExamEngine() {
         </View>
         {!isStudyMode && (
           <View style={[styles.timerBox, { backgroundColor: colors.timerBg }]}>
-            <Text style={styles.timerText}>⏱️ {Math.floor(timeLeft/60)}:{(timeLeft%60).toString().padStart(2,'0')}</Text>
+            <Text style={styles.timerText}><Ionicons name="time" size={14} color="#fff" /> {Math.floor(timeLeft/60)}:{(timeLeft%60).toString().padStart(2,'0')}</Text>
           </View>
         )}
       </View>
@@ -306,7 +307,7 @@ export default function MockExamEngine() {
           {isStudyMode && (
             <TouchableOpacity onPress={() => setRevealed({...revealed, [qId]: !showAnswer})} style={{marginTop: 15, alignItems: 'center'}}>
               <Text style={{color: colors.textMuted, fontWeight: 'bold'}}>
-                {showAnswer ? '🙈 Hide Answer' : '💡 Reveal Answer'}
+                <Ionicons name={showAnswer ? 'eye-off' : 'bulb'} size={14} /> {showAnswer ? 'Hide Answer' : 'Reveal Answer'}
               </Text>
             </TouchableOpacity>
           )}

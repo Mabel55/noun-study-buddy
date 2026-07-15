@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaVi
 import { useLocalSearchParams, router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { cacheSummary, getCachedSummary } from '../../utils/offlineStorage';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function SummaryPage() {
   const { id } = useLocalSearchParams();
@@ -55,7 +56,7 @@ export default function SummaryPage() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.headerBg }]}>
         <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 8 }}>
-          <Text style={{ color: '#fff', fontWeight: 'bold' }}>← Back</Text>
+          <Text style={{ color: '#fff', fontWeight: 'bold' }}><Ionicons name="arrow-back" size={14} color="#fff" /> Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{courseData?.title || 'Course Summary'}</Text>
       </View>
@@ -79,7 +80,7 @@ export default function SummaryPage() {
             style={[styles.actionBtn, { backgroundColor: colors.accent }]} 
             onPress={() => Linking.openURL(courseData.file)}
           >
-            <Text style={styles.actionBtnText}>📥 Download PDF</Text>
+            <Text style={styles.actionBtnText}><Ionicons name="download" size={15} color="#fff" /> Download PDF</Text>
           </TouchableOpacity>
         </View>
       )}

@@ -6,6 +6,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { cacheCourseDetail, getCachedCourseDetail } from '../../utils/offlineStorage';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function CourseDetails() {
   const { id } = useLocalSearchParams();
@@ -58,7 +59,7 @@ export default function CourseDetails() {
   if (!courseData) {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ fontSize: 48, marginBottom: 12 }}>📡</Text>
+        <Ionicons name="radio" size={48} color={colors.textMuted} style={{ marginBottom: 12 }} />
         <Text style={[styles.emptyTitle, { color: colors.text }]}>Course not available</Text>
         <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
           Connect to the internet to load this course.
@@ -67,10 +68,10 @@ export default function CourseDetails() {
           style={[styles.retryBtn, { backgroundColor: colors.accent }]} 
           onPress={() => { setLoading(true); loadCourseData(); }}
         >
-          <Text style={{ color: '#fff', fontWeight: 'bold' }}>🔄 Retry</Text>
+          <Text style={{ color: '#fff', fontWeight: 'bold' }}><Ionicons name="refresh" size={14} color="#fff"/> Retry</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
-          <Text style={{ color: colors.accent, fontWeight: 'bold' }}>← Go Back</Text>
+          <Text style={{ color: colors.accent, fontWeight: 'bold' }}><Ionicons name="arrow-back" size={14} color={colors.accent}/> Go Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -91,13 +92,13 @@ export default function CourseDetails() {
       
       <View style={[styles.header, { backgroundColor: colors.headerBg }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
+          <Text style={styles.backText}><Ionicons name="arrow-back" size={14} color="#fff"/> Back</Text>
         </TouchableOpacity>
         <Text style={styles.courseCode}>{courseData?.code}</Text>
         <Text style={[styles.courseTitle, { color: colors.headerSubtext }]}>{courseData?.title}</Text>
         <View style={styles.statsBadges}>
-          <View style={styles.badge}><Text style={styles.badgeText}>📝 {qCount} Questions</Text></View>
-          <View style={styles.badge}><Text style={styles.badgeText}>{isAdvanced ? '📄 POP' : '💻 CBT'}</Text></View>
+          <View style={styles.badge}><Text style={styles.badgeText}><Ionicons name="document-text" size={12}/> {qCount} Questions</Text></View>
+          <View style={styles.badge}><Text style={styles.badgeText}><Ionicons name={isAdvanced ? 'document' : 'laptop'} size={12}/> {isAdvanced ? 'POP' : 'CBT'}</Text></View>
         </View>
       </View>
 
@@ -107,7 +108,7 @@ export default function CourseDetails() {
 
         {/* 1. Summary */}
         <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.card }]} onPress={() => router.push(`/summary/${id}` as any)}>
-          <View style={[styles.iconCircle, { backgroundColor: colors.accentLight }]}><Text style={{fontSize: 24}}>📖</Text></View>
+          <View style={[styles.iconCircle, { backgroundColor: colors.accentLight }]}><Ionicons name="book" size={24} color={colors.accent}/></View>
           <View style={{flex: 1}}>
             <Text style={[styles.actionTitle, { color: colors.text }]}>Read Summary</Text>
             <Text style={{fontSize: 12, color: colors.textMuted}}>AI-generated study notes</Text>
@@ -120,7 +121,7 @@ export default function CourseDetails() {
           onPress={() => router.push(`/mock/${id}?mode=study&format=${isAdvanced ? 'POP' : 'CBT'}` as any)}
         >
           <View style={[styles.iconCircle, {backgroundColor: colors.iconBlueBg}]}>
-            <Text style={{fontSize: 24}}>💡</Text>
+            <Ionicons name="bulb" size={24} color="#1976d2" />
           </View>
           <View style={{flex: 1}}>
             <Text style={[styles.actionTitle, { color: colors.text }]}>Questions and Answers</Text>
@@ -136,7 +137,7 @@ export default function CourseDetails() {
           onPress={() => router.push(`/flashcards/${id}` as any)}
         >
           <View style={[styles.iconCircle, {backgroundColor: '#ffcdd2'}]}>
-            <Text style={{fontSize: 24}}>🔥</Text>
+            <Ionicons name="flame" size={24} color="#d32f2f" />
           </View>
           <View style={{flex: 1}}>
             <Text style={[styles.actionTitle, { color: colors.text }]}>Tinder-Style Flashcards</Text>
@@ -153,7 +154,7 @@ export default function CourseDetails() {
             onPress={() => router.push(`/mock/${id}?mode=exam&format=CBT` as any)}
           >
             <View style={[styles.iconCircle, {backgroundColor: colors.iconOrangeBg}]}>
-              <Text style={{fontSize: 24}}>⏱️</Text>
+              <Ionicons name="time" size={24} color="#e65100" />
             </View>
             <View style={{flex: 1}}>
               <Text style={[styles.actionTitle, { color: colors.text }]}>Take Timed Mock Exam</Text>
@@ -163,7 +164,7 @@ export default function CourseDetails() {
         ) : (
           <View style={[styles.actionCard, { backgroundColor: colors.disabledBg, elevation: 0 }]}>
              <View style={[styles.iconCircle, {backgroundColor: colors.disabledIcon}]}>
-               <Text style={{fontSize: 24, opacity: 0.4}}>⏱️</Text>
+               <Ionicons name="time" size={24} color={colors.textMuted} style={{ opacity: 0.4 }} />
              </View>
              <View style={{flex: 1}}>
                <Text style={[styles.actionTitle, {color: colors.textMuted}]}>Take Timed Mock Exam</Text>
@@ -178,7 +179,7 @@ export default function CourseDetails() {
           onPress={() => router.push(`/chat/${id}` as any)}
         >
           <View style={[styles.iconCircle, {backgroundColor: '#f3e5f5'}]}>
-            <Text style={{fontSize: 24}}>💬</Text>
+            <Ionicons name="chatbubbles" size={24} color="#7b1fa2" />
           </View>
           <View style={{flex: 1}}>
             <Text style={[styles.actionTitle, { color: colors.text }]}>Ask AI Tutor</Text>
@@ -192,7 +193,7 @@ export default function CourseDetails() {
           onPress={() => router.push(`/discussion/${id}` as any)}
         >
           <View style={[styles.iconCircle, {backgroundColor: '#e8f5e9'}]}>
-            <Text style={{fontSize: 24}}>👥</Text>
+            <Ionicons name="people" size={24} color="#2e7d32" />
           </View>
           <View style={{flex: 1}}>
             <Text style={[styles.actionTitle, { color: colors.text }]}>Course Community</Text>

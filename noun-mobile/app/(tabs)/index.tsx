@@ -4,6 +4,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, 
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { cacheCourses, getCachedCourses, getLastSyncTime, formatTimeAgo, checkIsOnline } from '../../utils/offlineStorage';
+import { Ionicons } from '@expo/vector-icons';
 
 const API_URL = 'https://noun-study-buddy.onrender.com/api/courses/'; 
 
@@ -73,11 +74,11 @@ export default function CourseDashboard() {
         </View>
         <Text style={[styles.courseTitle, { color: colors.textSecondary }]}>{item.title}</Text>
         <View style={[styles.statsRow]}>
-          <Text style={[styles.statText, { color: colors.textMuted }]}>📝 {qCount} Questions</Text>
-          <Text style={[styles.statText, { color: colors.textMuted }]}>📖 {item.summaries?.length || 0} Summary</Text>
+          <Text style={[styles.statText, { color: colors.textMuted }]}><Ionicons name="document-text" size={14}/> {qCount} Questions</Text>
+          <Text style={[styles.statText, { color: colors.textMuted }]}><Ionicons name="book" size={14}/> {item.summaries?.length || 0} Summary</Text>
         </View>
         <View style={[styles.actionRow, { borderTopColor: colors.border }]}>
-          <Text style={[styles.actionText, { color: colors.accent }]}>Tap to start studying →</Text>
+          <Text style={[styles.actionText, { color: colors.accent }]}>Tap to start studying <Ionicons name="arrow-forward" size={14}/></Text>
         </View>
       </TouchableOpacity>
     );
@@ -88,14 +89,14 @@ export default function CourseDashboard() {
       <View style={[styles.header, { backgroundColor: colors.headerBg }]}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={[styles.headerTitle, { color: colors.headerText }]}>📚 NOUN Study Buddy</Text>
+            <Text style={[styles.headerTitle, { color: colors.headerText }]}><Ionicons name="library" size={24}/> NOUN Study Buddy</Text>
             <Text style={[styles.headerSubtitle, { color: colors.headerSubtext }]}>
               {isLoggedIn ? `Welcome, ${user?.first_name || user?.username || 'Student'}!` : 'Select a course to begin'}
             </Text>
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity onPress={toggleTheme} style={styles.themeBtn}>
-              <Text style={{ fontSize: 22 }}>{isDark ? '☀️' : '🌙'}</Text>
+              <Ionicons name={isDark ? 'sunny' : 'moon'} size={22} color={colors.headerText} />
             </TouchableOpacity>
             {!isLoggedIn && (
               <TouchableOpacity 
@@ -115,7 +116,7 @@ export default function CourseDashboard() {
         <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 50 }} />
       ) : courses.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={{ fontSize: 48, marginBottom: 12 }}>📡</Text>
+          <Ionicons name="radio" size={48} color={colors.textMuted} style={{ marginBottom: 12 }} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>No courses available</Text>
           <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
             No courses found on the server or no connection.
@@ -124,7 +125,7 @@ export default function CourseDashboard() {
             style={[styles.retryBtn, { backgroundColor: colors.accent }]} 
             onPress={() => { setLoading(true); loadCourses(); }}
           >
-            <Text style={{ color: '#fff', fontWeight: 'bold' }}>🔄 Retry</Text>
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}><Ionicons name="refresh" size={14} color="#fff" /> Retry</Text>
           </TouchableOpacity>
         </View>
       ) : (

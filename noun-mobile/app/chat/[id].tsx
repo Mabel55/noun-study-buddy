@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import Markdown from 'react-native-markdown-display';
+import { Ionicons } from '@expo/vector-icons';
 
 const BASE_URL = 'https://noun-study-buddy.onrender.com';
 
@@ -73,7 +74,7 @@ export default function ChatScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.centerBody}>
-          <Text style={{ fontSize: 50, marginBottom: 16 }}>🔒</Text>
+          <Ionicons name="lock-closed" size={50} color={colors.textMuted} style={{ marginBottom: 16 }} />
           <Text style={[styles.title, { color: colors.text }]}>Login Required</Text>
           <Text style={[styles.desc, { color: colors.textSecondary }]}>
             Log in to chat directly with your AI tutor!
@@ -90,9 +91,9 @@ export default function ChatScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.headerBg }]}>
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 15 }}>
-          <Text style={{ color: '#fff', fontWeight: 'bold' }}>← Back</Text>
+          <Text style={{ color: '#fff', fontWeight: 'bold' }}><Ionicons name="arrow-back" size={14} color="#fff" /> Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>💬 AI Tutor</Text>
+        <Text style={styles.headerTitle}><Ionicons name="chatbubbles" size={20} color="#fff"/> AI Tutor</Text>
       </View>
 
       <KeyboardAvoidingView 
