@@ -114,7 +114,14 @@ class Purchase(models.Model):
 # PHASE 2: PROGRESS TRACKING & GAMIFICATION
 # ==============================================================================
 
-# 6. User Profile (Extended user data, XP, level)
+# 6. App User Proxy (For easier Admin Management)
+class AppUser(User):
+    class Meta:
+        proxy = True
+        verbose_name = 'App User'
+        verbose_name_plural = 'App Users'
+
+# 6.5 User Profile (Extended user data, XP, level)
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     xp_points = models.IntegerField(default=0)

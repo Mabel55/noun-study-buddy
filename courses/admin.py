@@ -1,6 +1,6 @@
 import threading
 from django.contrib import admin, messages
-from .models import Course, Question, Summary, MockExam, Purchase, PopQuestion, FillInTheGap, NewsArticle, DiscussionThread, DiscussionReply
+from .models import Course, Question, Summary, MockExam, Purchase, PopQuestion, FillInTheGap, NewsArticle, DiscussionThread, DiscussionReply, AppUser, UserProfile
 from .rag_tasks import process_course_rag_background
 
 @admin.action(description='Generate AI Content (Summary & Questions) from Textbook')
@@ -40,7 +40,19 @@ class NewsArticleAdmin(admin.ModelAdmin):
     list_display = ('title', 'category', 'date_posted', 'is_important')
     list_filter = ('category', 'is_important')
 
+class UserProfileInline(admin.StackedInline):
+    model = UserProfile
+    can_delete = False
+    verbose_name_plural = 'Profile Data'
+
+class AppUserAdmin(admin.ModelAdmin):
+    inlines = [UserProfileInline]
+    list_display = ('username', 'email', 'date_joined', 'is_active')
+    search_fields = ('username', 'email')
+    list_filter = ('is_active', 'date_joined')
+
 # Register your models
+admin.site.register(AppUser, AppUserAdmin)
 admin.site.register(Course, CourseAdmin)
 admin.site.register(Question, QuestionAdmin)
 admin.site.register(Summary, SummaryAdmin)
