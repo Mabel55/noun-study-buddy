@@ -20,7 +20,13 @@ export default function CourseDetails() {
   }, [id]);
 
   const loadCourseData = async () => {
-    setLoading(true);
+    const cachedData = await getCachedCourseDetail(id as string);
+    if (cachedData) {
+      setCourseData(cachedData);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
 
     try {
       const controller = new AbortController();
@@ -35,11 +41,15 @@ export default function CourseDetails() {
       const data = await response.json();
       
       setCourseData(data);
+      cacheCourseDetail(id as string, data);
       setIsOffline(false);
       setLoading(false);
     } catch (error) {
       console.log(`API fetch failed for course ${id}`);
-      setLoading(false);
+      setIsOffline(true);
+      if (!cachedData) {
+        setLoading(false);
+      }
     }
   };
 

@@ -16,7 +16,13 @@ export default function SummaryPage() {
   }, [id]);
 
   const loadSummary = async () => {
-    setLoading(true);
+    const cachedData = await getCachedSummary(id as string);
+    if (cachedData) {
+      setCourseData(cachedData);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
 
     try {
       const controller = new AbortController();
@@ -29,10 +35,13 @@ export default function SummaryPage() {
       const data = await res.json();
       
       setCourseData(data);
+      cacheSummary(id as string, data);
       setLoading(false);
     } catch (err) {
       console.log('Summary API fetch failed.');
-      setLoading(false);
+      if (!cachedData) {
+        setLoading(false);
+      }
     }
   };
 

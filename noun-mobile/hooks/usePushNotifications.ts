@@ -6,13 +6,15 @@ import { useAuth } from '../context/AuthContext';
 
 const BASE_URL = 'https://noun-study-buddy.onrender.com';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 export function usePushNotifications() {
   const [expoPushToken, setExpoPushToken] = useState('');

@@ -20,7 +20,13 @@ export default function CourseDashboard() {
   }, []);
 
   const loadCourses = async () => {
-    setLoading(true);
+    const cachedCourses = await getCachedCourses();
+    if (cachedCourses && cachedCourses.length > 0) {
+      setCourses(cachedCourses);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
 
     try {
       const controller = new AbortController();
@@ -36,11 +42,15 @@ export default function CourseDashboard() {
       
       // Update UI with fresh data
       setCourses(data);
+      cacheCourses(data);
       setIsOffline(false);
       setLoading(false);
     } catch (error) {
       console.log('API fetch failed.');
-      setLoading(false);
+      setIsOffline(true);
+      if (!cachedCourses) {
+        setLoading(false);
+      }
     }
   };
 

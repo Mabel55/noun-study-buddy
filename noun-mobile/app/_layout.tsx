@@ -5,6 +5,8 @@ import Head from 'expo-router/head';
 import { ThemeProvider } from '../context/ThemeContext';
 import { AuthProvider } from '../context/AuthContext';
 
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
 export default function RootLayout() {
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -19,7 +21,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <Head>
         <title>NOUN Study Buddy | The Ultimate Offline Companion</title>
         <meta name="description" content="Study smarter with NOUN Study Buddy. Get past questions, course summaries, and AI tutor help specifically tailored for National Open University of Nigeria (NOUN) students." />
@@ -34,6 +36,6 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }} />
         </ThemeProvider>
       </AuthProvider>
-    </>
+    </GestureHandlerRootView>
   );
 }
